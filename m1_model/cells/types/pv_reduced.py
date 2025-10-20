@@ -3,21 +3,21 @@ from pathlib import Path
 from m1_model.cells.base import CellProvider, ImportSpec
 from m1_model.utils.mech_scaler import make_scale_postfn
 
-class PVSimpleFromHoc(CellProvider):
-    """PV cell (3-compartment) imported from FS3.hoc/FScell1."""
-    def __init__(self, sim_dir: Path, scale_pas_g: float | None = None):
-        self.sim_dir = sim_dir
+class PVReducedFromHoc(CellProvider):
+    def __init__(self, project_root: Path, scale_pas_g: float | None = None):
+        self.project_root = project_root
         self.scale_pas_g = scale_pas_g
 
     def import_spec(self, ctx) -> ImportSpec:
-        hoc_file = self.sim_dir / "cells" / "FS3.hoc"
-        weight_norm = self.sim_dir / "conn" / "PV_simple_weightNorm.pkl"
-        saved_pkl  = self.sim_dir / "cells" / "PV_simple_cellParams.pkl"
+        # NOTE: resolve from project root (no "sim/" prefix)
+        hoc_file = self.project_root / "cells" / "FS3.hoc"
+        weight_norm = self.project_root / "conn" / "PV_reduced_weightNorm.pkl"
+        saved_pkl  = self.project_root / "cells" / "PV_reduced_cellParams.pkl"
 
         post_fn = None
         if self.scale_pas_g and self.scale_pas_g != 1.0:
             post_fn = make_scale_postfn(
-                cell_label="PV_simple",
+                cell_label="PV_reduced",
                 mech="pas",
                 param="g",
                 factor=self.scale_pas_g,
@@ -25,10 +25,10 @@ class PVSimpleFromHoc(CellProvider):
             )
 
         return ImportSpec(
-            label="PV_simple",
-            conds={"cellType": "PV", "cellModel": "HH_simple"},
+            label="PV_reduced",
+            conds={"cellType": "PV", "cellModel": "HH_reduced"},
             kind="hoc",
-            file=hoc_file,
+            file=hoc_file,                  # -> <project>/cells/FS3.hoc
             cell_name="FScell1",
             kwargs={"cellInstance": True},
             post_patch={"secLists": {"spiny": ["soma", "dend"]}},

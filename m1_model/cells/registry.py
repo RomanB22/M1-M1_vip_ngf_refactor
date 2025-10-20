@@ -2,14 +2,13 @@
 from typing import Dict, Callable, Iterable
 from pathlib import Path
 from m1_model.cells.base import CellProvider
-from m1_model.cells.types.pv_simple import PVSimpleFromHoc
+from m1_model.cells.types.pv_reduced import PVReducedFromHoc
 
 def build_registry(ctx) -> Dict[str, Callable[[], CellProvider]]:
-    sim_dir = Path(ctx.sim_dir)
-    scale_pas = getattr(ctx.cfg, "pv_scale_pas_g", None)  # optional cfg knob
+    proj_dir = Path(ctx.project_root)
+    scale_pas = getattr(ctx.cfg, "pv_scale_pas_g", None)
     return {
-        "PV_simple": lambda: PVSimpleFromHoc(sim_dir, scale_pas_g=scale_pas),
-        # add more cells here as you migrate
+        "PV_reduced": lambda: PVReducedFromHoc(proj_dir, scale_pas_g=scale_pas),
     }
 
 def get_enabled_cells(config: dict, ctx) -> Iterable[CellProvider]:

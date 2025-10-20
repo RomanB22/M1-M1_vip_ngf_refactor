@@ -22,7 +22,8 @@ except Exception:
 netParams = specs.NetParams()
 
 class Ctx:
-    sim_dir = Path(__file__).resolve().parent
+    sim_dir = Path(__file__).resolve().parent              # sim/
+    project_root = Path(__file__).resolve().parents[1]     # <project>/
     cfg = cfg
     loadCellParams = set(getattr(cfg, "loadCellParams", []) or [])
 
@@ -32,5 +33,11 @@ cell_cfg = yaml.safe_load(open(cfg_path)) if cfg_path.exists() else {}
 ctx = Ctx()
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))
 add_cells_via_import(netParams, cells, ctx)
+
+print("Providers:", [p.import_spec(None).label for p in cells])  # did we build PV_simple?
+print("Before:", netParams.cellParams.keys())
+# after add_cells_via_import:
+print("After:", netParams.cellParams.keys())
+print("PV_reduced rule present:", "PV_reduced" in netParams.cellParams)
 
 # ... continue with pops/conns/simConfig as in your project ...

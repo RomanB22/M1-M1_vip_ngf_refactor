@@ -1,4 +1,4 @@
 
 # Enable specific cells by label. Leave empty or comment out to enable all registered cells.
 enabled_cells:
-  - PV_simple
+  - PV_reduced
