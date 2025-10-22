@@ -198,3 +198,134 @@ def strip_range_like_globals(rule: dict) -> None:
         parts = k.rsplit("_", 1)
         if len(parts) == 2 and parts[0] in range_like_prefixes:
             globs.pop(k, None)
+
+# --- keep only properties for cell types whose LABELS are enabled in config/cells.yml ---
+
+from pathlib import Path
+import yaml
+
+def _enabled_labels_from_yaml(p: str | Path) -> set[str]:
+    with open(p, "r") as f:
+        y = yaml.safe_load(f) or {}
+    labels = y.get("enabled_cells", None)
+    if not labels:
+        return set()  # empty => allow all
+    return {str(x) for x in labels}
+
+def _labels_to_celltypes(netParams, labels: set[str]) -> set[str]:
+    """
+    Determine allowed cellTypes by looking up the loaded rules in netParams.cellParams
+    whose labels are listed in `labels`. If labels is empty -> allow all discovered cellTypes.
+    """
+    allowed: set[str] = set()
+    rules = getattr(netParams, "cellParams", {}) or {}
+    if not labels:
+        # No restriction: include all present types
+        for rule in rules.values():
+            ct = (rule.get("conds") or {}).get("cellType")
+            if isinstance(ct, str):
+                allowed.add(ct)
+        return allowed
+
+    for lbl in labels:
+        rule = rules.get(lbl)
+        if not isinstance(rule, dict):
+            continue
+        ct = (rule.get("conds") or {}).get("cellType")
+        if isinstance(ct, str):
+            allowed.add(ct)
+    return allowed
+
+def _filter_celltype_value(value, allowed: set[str]):
+    if isinstance(value, list):
+        kept = [ct for ct in value if ct in allowed]
+        return kept if kept else None
+    else:
+        return value if (isinstance(value, str) and value in allowed) else None
+
+def filter_by_enabled_cells_yaml(netParams, cells_yaml_path: str | Path, verbose: bool = True):
+    """
+    Prune netParams.* so ONLY cell types corresponding to labels listed in config/cells.yml
+    remain referenced.
+
+    - Reads `enabled_cells` (labels). If empty/missing -> keeps everything.
+    - Maps those labels -> cellTypes via netParams.cellParams[*]['conds']['cellType'].
+    - Removes pops whose pop['cellType'] not in allowed.
+    - Trims or removes connParams/subConnParams when pre/post cellType(s) fall outside allowed.
+    """
+    enabled_labels = _enabled_labels_from_yaml(cells_yaml_path)
+    allowed_types = _labels_to_celltypes(netParams, enabled_labels)
+
+    report = {
+        "enabled_labels": sorted(enabled_labels),
+        "allowed_cellTypes": sorted(allowed_types),
+        "removed_pops": [],
+        "removed_conn_rules": [],
+        "edited_conn_rules": 0,
+        "removed_subconn_rules": [],
+        "edited_subconn_rules": 0,
+    }
+
+    if verbose:
+        if enabled_labels:
+            print(f"[cells.yml] Enabled labels: {report['enabled_labels']}")
+        else:
+            print("[cells.yml] No labels specified -> no pruning.")
+        print(f"[cells.yml] Allowed cellTypes resolved: {report['allowed_cellTypes']}")
+
+    # Nothing to do if no restriction
+    if not enabled_labels or not allowed_types:
+        return report
+
+    # 1) Populations
+    for pop_label, spec in list((netParams.popParams or {}).items()):
+        ct = spec.get("cellType")
+        if isinstance(ct, str) and ct not in allowed_types:
+            del netParams.popParams[pop_label]
+            report["removed_pops"].append(pop_label)
+
+    # Helper for conds filtering
+    def _filter_conds(conds: dict) -> tuple[bool, dict]:
+        if not isinstance(conds, dict) or "cellType" not in conds:
+            return True, conds
+        new_val = _filter_celltype_value(conds["cellType"], allowed_types)
+        if new_val is None:
+            return False, conds
+        new = dict(conds)
+        new["cellType"] = new_val
+        return True, new
+
+    # 2) Connection rules
+    for rule_label, rule in list((netParams.connParams or {}).items()):
+        pre_ok, pre_new = _filter_conds(rule.get("preConds", {}))
+        post_ok, post_new = _filter_conds(rule.get("postConds", {}))
+        if not pre_ok or not post_ok:
+            del netParams.connParams[rule_label]
+            report["removed_conn_rules"].append(rule_label)
+        else:
+            if pre_new is not rule.get("preConds") or post_new is not rule.get("postConds"):
+                rule["preConds"] = pre_new
+                rule["postConds"] = post_new
+                report["edited_conn_rules"] += 1
+
+    # 3) Subcellular rules
+    for rule_label, rule in list((netParams.subConnParams or {}).items()):
+        pre_ok, pre_new = _filter_conds(rule.get("preConds", {}))
+        post_ok, post_new = _filter_conds(rule.get("postConds", {}))
+        if not pre_ok or not post_ok:
+            del netParams.subConnParams[rule_label]
+            report["removed_subconn_rules"].append(rule_label)
+        else:
+            if pre_new is not rule.get("preConds") or post_new is not rule.get("postConds"):
+                rule["preConds"] = pre_new
+                rule["postConds"] = post_new
+                report["edited_subconn_rules"] += 1
+
+    if verbose:
+        print(f"[cells.yml] Removed pops: {report['removed_pops']}")
+        print(f"[cells.yml] Conn rules removed/edited: "
+              f"{len(report['removed_conn_rules'])}/{report['edited_conn_rules']}")
+        print(f"[cells.yml] SubConn rules removed/edited: "
+              f"{len(report['removed_subconn_rules'])}/{report['edited_subconn_rules']}")
+
+    return report

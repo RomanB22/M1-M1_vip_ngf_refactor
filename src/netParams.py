@@ -151,6 +151,19 @@ if getattr(cfg, "mutations_enabled", True):
 # # print(netParams.cellParams['PT5B_full']['secs']['axon_0']['geom'])
 # quit()
 
+if cfg.drugTreatment:
+    from m1_model.utils.drug_treatments import apply_cell_mech_drugs, apply_syn_drugs
+
+    # Intrinsic (per-cell) drug actions
+    changes_intr = apply_cell_mech_drugs(netParams, cfg.cell_drugs, dry_run=getattr(cfg, "drug_dry_run", False))
+    # Synaptic (global syn mechanism defs)
+    changes_syn  = apply_syn_drugs(netParams, cfg.syn_drugs, dry_run=getattr(cfg, "drug_dry_run", False))
+
+    # Optional: print a brief audit
+    if getattr(cfg, "verbose_drug_changes", False):
+        for line in changes_intr + changes_syn:
+            print("[DRUG]", line)
+
 #------------------------------------------------------------------------------
 # Population parameters
 #------------------------------------------------------------------------------
@@ -548,6 +561,12 @@ if cfg.addSubConn:
         'sec': 'spiny',
         'groupSynMechs': ESynMech,
         'density': 'uniform'} 
+
+report = defs.filter_by_enabled_cells_yaml(
+    netParams,
+    PROJECT_ROOT / "config" / "cells.yml",
+    verbose=True
+)
 
 #------------------------------------------------------------------------------
 # Description

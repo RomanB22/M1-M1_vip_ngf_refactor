@@ -26,10 +26,13 @@ cfg = specs.SimConfig()
 # Run parameters
 #------------------------------------------------------------------------------
 
-cfg.preTone = 1500
+cfg.preTone = 2500
 cfg.postTone = 1500 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = True # To add the sampled spike times from in-vivo recordings on TVL
+if cfg.addInVivoThalamus: 
+     cfg.preTone = 1500 
+     cfg.postTone = 1500
 cfg.duration = cfg.preTone + cfg.postTone
 cfg.dt = 0.025
 cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'cell': 1234} 
@@ -69,7 +72,7 @@ allpops = ['NGF1', 'IT2', 'PV2', 'SOM2', 'VIP2', 'NGF2',
            'IT5B', 'PT5B', 'PV5B', 'SOM5B','VIP5B','NGF5B',
            'IT6','CT6','PV6','SOM6','VIP6','NGF6']
 recpops = ['PV2', 'PV4', 'PV5A', 'PV5B', 'PV6', 'PT5B']
-cfg.cellsrec = 1
+cfg.cellsrec = 5
 if cfg.cellsrec == 0:  cfg.recordCells = ['all'] # record all cells
 elif cfg.cellsrec == 1: cfg.recordCells = [(pop,0) for pop in allpops] # record one cell of each pop
 elif cfg.cellsrec == 2: cfg.recordCells = [('IT2',10), ('IT5A',10), ('PT5B',10), ('PV5B',10), ('SOM5B',10)] # record selected cells
@@ -87,7 +90,7 @@ cfg.recordStep = cfg.dt
 # Saving
 #------------------------------------------------------------------------------
 cfg.simLabel = 'v103_tune3'
-cfg.saveFolder = './data/v103_manualTune'
+cfg.saveFolder = './batchData/v103_manualTune'
 cfg.savePickle = False
 cfg.saveJson = True
 cfg.saveDataInclude = ['simData', 'simConfig', 'netParams']#, 'net']
@@ -189,6 +192,37 @@ if cfg.blockNa:
             "only_if_present": {"mech": "nax"},
         },
     ]
+
+cfg.drugTreatment = False
+cfg.verbose_drug_changes = True
+# Example “intrinsic” sheet rows
+cfg.cell_drugs = [
+    # Block sodium in PV and SOM (e.g., TTX): set gbar/gmax to 0 for all sodium mechs you use
+    {"cell_types": ["PV","SOM"], "mech": "nax",   "param": "gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
+    {"cell_types": ["PT","IT"],  "mech": "na12",  "param": "gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
+    {"cell_types": ["PT","IT"],  "mech": "na12mut","param":"gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
+
+    # Ih blocker (ZD7288-like) on VIP only: scale to 20%
+    {"cell_types": ["VIP"], "mech": "Ih", "param": "gIhbar", "op": "scale", "value": 0.2, "sections": "ALL"},
+
+    # Boost HCN on NGF dendrite only
+    {"cell_types": ["NGF"], "mech": "hd", "param": "gbar", "op": "scale", "value": 1.5, "sections": ["dend"]},
+
+    # Reduce L-type Ca on SOM soma (catcb example would be 'gcatbar' etc.)
+    {"cell_types": ["SOM"], "mech": "catcb", "param": "gcatbar", "op": "scale", "value": 0.5, "sections": ["soma"]},
+]
+
+# Example “synaptic” sheet rows
+cfg.syn_drugs = [
+    # Ketamine-like NMDA reduction: halve tau2NMDA and reduce gain (example)
+    {"syn_mechs": ["NMDA"], "param": "tau2NMDA", "op": "scale", "value": 0.5},
+    # AMPA potentiation: faster decay and slightly larger conductance (if you model it via tau2 only)
+    {"syn_mechs": ["AMPA"], "param": "tau2", "op": "scale", "value": 0.8},
+    # GABA-A depolarizing shift (rare, example): Erev from -80 to -70
+    {"syn_mechs": ["GABAA","GABAA_VIP"], "param": "e", "op": "set", "value": -70},
+    # GABA-B slowing
+    {"syn_mechs": ["GABAB"], "param": "tau2", "op": "scale", "value": 1.25},
+]
 
 cfg.cellmod =  {'IT2': 'HH_reduced',
 				'IT4': 'HH_reduced',
