@@ -194,11 +194,13 @@ if cfg.blockNa:
     ]
 
 cfg.drugTreatment = False
-cfg.verbose_drug_changes = True
+cfg.verbose_drug_changes = False
+cfg.drug_dry_run = False  # If True, will only print planned changes without applying them
 # Example “intrinsic” sheet rows
 cfg.cell_drugs = [
     # Block sodium in PV and SOM (e.g., TTX): set gbar/gmax to 0 for all sodium mechs you use
     {"cell_types": ["PV","SOM"], "mech": "nax",   "param": "gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
+    {"cell_types": ["PT","IT"],  "mech": "nax",  "param": "gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
     {"cell_types": ["PT","IT"],  "mech": "na12",  "param": "gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
     {"cell_types": ["PT","IT"],  "mech": "na12mut","param":"gbar", "op": "set",   "value": 0.0, "sections": "ALL"},
 
