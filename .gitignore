@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python bytecode caches
+__pycache__/
+
+# (Optional) compiled Python files
+*.py[cod]
+*$py.class
+
+# Architecture-specific build dirs
+arm64/
+x86/
+
+batchData/
+Plots/
+
+# PDFs
+*.pdf
