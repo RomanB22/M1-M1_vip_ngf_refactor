@@ -17,3 +17,7 @@ Plots/
 
 # PDFs
 *.pdf
+
+ExpanseKey.txt
+netpyne/
+src_MANIFOLDS/

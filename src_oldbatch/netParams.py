@@ -11,19 +11,16 @@ from netpyne import specs
 import pickle, json
 import defs
 from pathlib import Path
-from cfg import cfg
-
-
-cfg.update()
-
-cfg.saveFolder = cfg._batchtk_path_pointer
-cfg.simLabel = cfg._batchtk_label_pointer
 
 cwd = str(Path.cwd())
 netParams = specs.NetParams()   # object of class NetParams to store the network parameters
 
 netParams.version = 103
 
+try:
+    from __main__ import cfg  # import SimConfig object with params from parent module
+except:
+    from cfg import cfg
 
 #------------------------------------------------------------------------------
 #
@@ -65,7 +62,7 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 #------------------------------------------------------------------------------
 ## Load cell rules previously saved using netpyne format
 cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
-    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'] #  # list of cell rules to load from file
+    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'] # list of cell rules to load from file
 loadCellParams = cellParamLabels
 saveCellParams = False #True
 

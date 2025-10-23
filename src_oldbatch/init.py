@@ -13,13 +13,10 @@ Contributors: salvadordura@gmail.com
 """
 
 import matplotlib; matplotlib.use('Agg')  # to avoid graphics error in servers
-
-#from neuron import h,gui
 from netpyne import sim
-#from cfg_cell import cfg
-#from netParams_cell import netParams
 
-cfg, netParams = sim.readCmdLineArgs(simConfigDefault='cfg_netClamp.py', netParamsDefault='netParams_netClamp.py')
+
+cfg, netParams = sim.readCmdLineArgs(simConfigDefault='src/cfg.py', netParamsDefault='src/netParams.py')
 sim.initialize(
     simConfig = cfg, 	
     netParams = netParams)  				# create network object and set cfg and net params
@@ -30,7 +27,6 @@ sim.net.addStims() 							# add network stimulation
 sim.setupRecording()              			# setup variables to record for each cell (spikes, V traces, etc)
 sim.runSim()                      			# run parallel Neuron simulation  
 sim.gatherData()                  			# gather spiking data and cell info from each node
-sim.analysis.plotData()         			# plot spike raster
-sim.saveData()                    			# save params, cell info and sim output to file (pickle,mat,txt,etc)
-
+sim.saveData()                    			# save params, cell info and sim output to file (pickle,mat,txt,etc)#
+sim.analysis.plotData()         			# plot spike raster etc
 

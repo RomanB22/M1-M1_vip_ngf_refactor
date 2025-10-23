@@ -20,8 +20,7 @@ cfg = specs.SimConfig()
 # SIMULATION CONFIGURATION
 #
 #------------------------------------------------------------------------------
-cfg._batchtk_label_pointer = None
-cfg._batchtk_path_pointer = None
+
 
 #------------------------------------------------------------------------------
 # Run parameters
@@ -113,17 +112,19 @@ cfg.analysis['plotRaster'] = {'include': allpops, 'orderBy': ['pop', 'y'], 'time
                              'orderInverse': True, 'popColors': popColors, 'figSize': (12,18), 'lw': 0.3,
                              'markerSize':3, 'marker': '.', 'dpi': 300} 
 
-cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}, 
-                    'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
-                    'V_dend_5': {'sec':'dend_5', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
+cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}}
+
+# cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}, 
+#                     'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
+#                     'V_dend_5': {'sec':'dend_5', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
-								'saveFig': True, 'subtitles': True} 
+								'saveFig': True} 
 #------------------------------------------------------------------------------
 # Cells
 #------------------------------------------------------------------------------
-cfg.pt5b_variant = "tim"        # "tim" or "standard"
+cfg.pt5b_variant = "standard"        # "tim" or "standard"
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
@@ -254,6 +255,15 @@ cfg.epas = 0.9  # multiplicative factor for pas e in PT cells
 
 cfg.modifyMechs = {'startTime': cfg.preTone, 'endTime': cfg.duration, 
                    'cellType':'PT', 'mech': 'hd', 'property': 'gbar', 'newFactor': 1.00, 'origFactor': 0.75}
+
+#------------------------------------------------------------------------------
+# Drug Effects NOT IMPLEMENTED YET
+#------------------------------------------------------------------------------
+cfg.treatment = False
+cfg.sodiumMechs = ['na12', 'na12mut', 'Nafx', 'nax', 'na16mut', 'Nafcr', 'ch_Navngf', 'na16', 'na16mut', 'nap'] # Look at the suffix in the modfiles
+cfg.LVACaMechs = ['Ca_LVAst', 'cat', 'catt', 'catcb']
+cfg.variables = ['gbar', 'gnafbar', 'gmax'] # Name of the variable/s to modify
+cfg.drugEffect = 0.5 # Multiplicative factor
 
 #------------------------------------------------------------------------------
 # Synapses
