@@ -2,26 +2,16 @@ from batchtk.algos import optuna_search
 from batchtk.utils import expand_path
 
 from netpyne.batchtools.search import generate_constructors
+from ClusterConfigs import slurm_args
 
 #option for local run
-dispatcher, submit = generate_constructors('sh', 'socket')
-
+# dispatcher, submit = generate_constructors('sh', 'socket')
 #option for slurm run
-# dispatcher, submit = generate_constructors('slurm', 'sfs')
-slurm_args = {
-    'allocation': 'csd403',
-    'realtime': '00:30:00',
-    'nodes': '1',
-    'coresPerNode': '1',
-    'mem': '4G',
-    'partition': 'shared',
-    'email': '<user_email_here>',
-    'custom': '',
-    'command': 'python src/init.py',
-}
+dispatcher, submit = generate_constructors('slurm', 'sfs')
 
+num_individuals = 2
+num_iterations = 2
 
-numSamples = 1
 PercentageChange = 0.5
 minChg = (1-PercentageChange)
 maxChg = (1+PercentageChange)
@@ -47,15 +37,6 @@ params = {'weightLong.TPO': (0.1*minChg, 0.5*maxChg),
         #   'scaleDensity': (0.15)   
           }
 
-
-# ENV_VARS = """
-# export STRRUNTK16="saveFolder*=${_batchtk_path_pointer}"
-# export STRRUNTK17="simLabel*=${_batchtk_label_pointer}"
-# """
-
-num_individuals = 2
-num_iterations = 2
-
 results = optuna_search(
     study_label='optuna_batch',
     param_space=params,
@@ -64,8 +45,8 @@ results = optuna_search(
     num_workers=num_individuals,
     dispatcher_constructor=dispatcher,
     submit_constructor=submit,
-    submit_kwargs={'command': 'python -u src/init.py'}, # normal run
-    # submit_kwargs=slurm_args,
+    # submit_kwargs={'command': 'python -u src/init.py'}, # normal run
+    submit_kwargs=slurm_args,
     interval=10,
     project_path='.',
     output_path=expand_path('./optimization/optuna', create_dirs=True),
