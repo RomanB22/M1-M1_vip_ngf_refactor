@@ -462,7 +462,7 @@ if cfg.addSubConn:
     # L2/3,TVL,S2,cM1,M2 -> PT (Suter, 2015)
     lenY = 30 
     spacing = 50
-    gridY = range(0, -spacing*lenY, -spacing)
+    gridY = list(range(0, -spacing*lenY, -spacing))
     synDens, _, fixedSomaY = connDendPTData['synDens'], connDendPTData['gridY'], connDendPTData['fixedSomaY']
     for k in synDens.keys():
         prePop,postType = k.split('_')  # eg. split 'M2_PT'
@@ -478,7 +478,7 @@ if cfg.addSubConn:
     # TPO, TVL, M2, OC  -> E (L2/3, L5A, L5B, L6) (Hooks 2013)
     lenY = 26
     spacing = 50
-    gridY = range(0, -spacing*lenY, -spacing)
+    gridY = list(range(0, -spacing*lenY, -spacing))
     synDens, _, fixedSomaY = connDendITData['synDens'], connDendITData['gridY'], connDendITData['fixedSomaY']
     for k in synDens.keys():
         prePop,post = k.split('_')  # eg. split 'M2_L2'
