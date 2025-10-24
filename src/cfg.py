@@ -27,10 +27,10 @@ cfg._batchtk_path_pointer = None
 # Run parameters
 #------------------------------------------------------------------------------
 
-cfg.preTone = 2500
+cfg.preTone = 1500
 cfg.postTone = 1500 # Movement part
 cfg.SimulateBaseline = True
-cfg.addInVivoThalamus = True # To add the sampled spike times from in-vivo recordings on TVL
+cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
 if cfg.addInVivoThalamus: 
      cfg.preTone = 1500 
      cfg.postTone = 1500
@@ -53,7 +53,7 @@ cfg.validateNetParams = True
 cfg.progressBar = 0
 
 cfg.includeParamsLabel = False
-cfg.timeRanges = [0, cfg.duration]#[cfg.duration-cfg.postTone, cfg.duration]
+cfg.timeRanges = [cfg.duration-cfg.postTone, cfg.duration]
 cfg.printPopAvgRates = cfg.timeRanges
 
 cfg.checkErrors = False
@@ -81,7 +81,7 @@ elif cfg.cellsrec == 3: cfg.recordCells = [(pop,50) for pop in ['IT5A', 'PT5B']]
 elif cfg.cellsrec == 4: cfg.recordCells = [(pop,50) for pop in ['IT2', 'IT4', 'IT5A', 'PT5B']] \
 										+ [('IT5A',x) for x in [393,447,579,19,104]] \
 										+ [('PT5B',x) for x in [393,447,579,19,104,214,1138,979,799]] # record selected cells
-elif cfg.cellsrec == 5: cfg.recordCells =  [(pop, i) for pop in recpops for i in range(10)] # record 10 one cell of each selected pop
+elif cfg.cellsrec == 5: cfg.recordCells =  [(pop, i) for pop in recpops for i in range(0,100,int(100/50))] # record 5 cells of each selected pop
 
 cfg.recordStim = False
 cfg.recordTime = False  
@@ -123,7 +123,7 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 # Cells
 #------------------------------------------------------------------------------
-cfg.pt5b_variant = "tim"        # "tim" or "standard"
+cfg.pt5b_variant = "standard"        # "tim" or "standard"
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
