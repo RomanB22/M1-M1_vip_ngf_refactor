@@ -4,6 +4,9 @@ from batchtk.utils import expand_path
 from netpyne.batchtools.search import generate_constructors
 from ClusterConfigs import slurm_args
 
+from pathlib import Path
+cwd = str(Path.cwd())
+
 #option for local run
 # dispatcher, submit = generate_constructors('sh', 'socket')
 #option for slurm run
@@ -48,6 +51,6 @@ results = optuna_search(
     # submit_kwargs={'command': 'python -u src/init.py'}, # normal run
     submit_kwargs=slurm_args,
     interval=10,
-    project_path='.',
+    project_path=cwd,
     output_path=expand_path('./optimization/optuna', create_dirs=True),
 )
