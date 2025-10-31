@@ -17,7 +17,7 @@ time mpirun -n $SLURM_NTASKS nrniv -mpi -python src/init.py
 """
 
 slurm_args = {
-    'allocation': 'TG-MED240058',
+    'allocation': 'TG-MED240058', # 'TG-IBN140002' 'TG-MED240058' 'TG-MED240050'
     'realtime': '10:30:00',
     'nodes': '1',
     'coresPerNode': '120',

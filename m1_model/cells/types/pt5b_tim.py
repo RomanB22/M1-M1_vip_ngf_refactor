@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Dict
 import json
 
+from m1_model.utils.param_patch import atomic_write_json
+
 from m1_model.cells.base import ImportSpec, CellProvider
 from m1_model.utils.csv_helpers import csv_to_dict
 from m1_model.utils.param_patch import apply_na_paramfile_to_rule
@@ -294,9 +296,12 @@ class PT5BFullTimFromPy(CellProvider):
             except Exception:
                 # keep as string if not convertible
                 pass
+        # json_params_path.parent.mkdir(parents=True, exist_ok=True)
+        # with open(json_params_path, "w") as f:
+        #     json.dump(sorted_variant, f)
+
         json_params_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(json_params_path, "w") as f:
-            json.dump(sorted_variant, f)
+        atomic_write_json(json_params_path, sorted_variant)
 
         # 2) Build ImportSpec
         conds: Dict[str, Any] = {"cellType": "PT", "cellModel": "HH_full"}
