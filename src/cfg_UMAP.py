@@ -37,7 +37,13 @@ reprs, reds, names, task_progress, validCellsDepth, RawDataPrep, params = defs.l
 # 'scaled_tone'
 reprs, reds, names, task_progress, validCellsDepth, RawDataTone, params = defs.load_umap_results(reg=cfg.region, n_components=cfg.n_components, period='scaled_tone')
 
-cfg.selected_trial = 9
+cfg.selected_trial = 2 
+# ['230726_3744_1622VAL', '230524_2757_1629VAL', '230517_2759_1606VAL', '230714_3745_1422VAL', 
+# '230509_2775_1454VAL', '230727_3744_948VAL', '230928_3758_1058VAL', '230711_3747_917VAL', 
+# '231003_8183_1657VAL', '230711_3747_933VAL', '230524_2757_1652VAL', '230726_3746_1712VAL', 
+# '230510_2774_1646VAL', '230517_2759_1315VAL', '230714_3745_1021VAL', '230712_3745_1356VAL',
+# '231129_8696_1454VAL', '231004_8146_1302VAL', '230718_3749_1721VAL', '230713_3745_1053VAL', 
+# '231129_8695_1409VAL', '230508_2774_1426VAL', '230929_3675_1207VAL']
 cfg.UMAP_params = params
 
 ihQuiet = 1.0 # Factor for ih gbar in PT cells at quiet state
