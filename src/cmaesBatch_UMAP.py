@@ -3,7 +3,7 @@ from batchtk.algos import cmaes_search
 
 from netpyne.batchtools.search import generate_constructors
 import pandas as pd
-from ClusterConfigs import slurm_args
+from ClusterConfigs_UMAP import slurm_args
 
 from pathlib import Path
 cwd = str(Path.cwd())
@@ -39,7 +39,7 @@ params = {
 
 param_space_samplers = ['float' for _ in range(len(params))]  # specify float sampling for all parameters
 results = cmaes_search(
-    study_label='cmaes_batch',
+    study_label='cmaes_batch_umap',
     param_space=params,
     param_space_samplers=param_space_samplers,  # specify integer sampling for both parameters
     algo_kwargs={'seed': 42}, # for reproducibility
