@@ -13,7 +13,7 @@ module load openmpi/mlnx/gcc/64/4.1.5a1
 export PYTHONPATH=$PYTHONPATH:$PWD
 export PYTHONPATH=$PYTHONPATH:$PWD/src
 
-time mpirun -n $SLURM_NTASKS nrniv -mpi -python src/init_UMAP.py
+time mpirun -n $SLURM_NTASKS nrniv -mpi -python src_UMAP/init_UMAP.py
 """
 
 slurm_args = {
