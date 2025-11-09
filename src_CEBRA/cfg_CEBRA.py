@@ -7,6 +7,7 @@ Contributors: salvadordura@gmail.com
 """
 
 from netpyne import specs
+import numpy as np
 import pickle
 from pathlib import Path
 import defs
@@ -26,17 +27,100 @@ cfg._batchtk_path_pointer = None
 #------------------------------------------------------------------------------
 # Run parameters
 #------------------------------------------------------------------------------
+###
+# FIRST THING IS TO LOAD THE TRIAL NEURAL_DATA (WE KNOW THAT WE HAVE 1500 MS PRE-TONE AND 1500 MS POST-TONE)
+########
 
-cfg.preTone = 1500
-cfg.postTone = 1500 # Movement part
-cfg.SimulateBaseline = True
-cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
-if cfg.addInVivoThalamus: 
-     cfg.preTone = 1500 
-     cfg.postTone = 1500
+cfg.selected_sessions = '230517_2759_1606VAL' # 230712_3745_1356VAL 230517_2759_1606VAL 230711_3747_933VAL 230713_3745_1053VAL
+cfg.selected_trial = 20
+
+from utils import MetaParams
+pmp = MetaParams('neural_data', {
+        'region': ('m1', 'region to process as neural data', False),
+        'rec_type': ('spikes', 'type of data to process (spikes or lfp)', False),
+        'smooth': (True, 'smooth spikes'),
+        # To use with training mode 'thal':
+        # 'use_thal_as': ('th-cebra', 'preprocessing method for thalamus as auxiliary data', False), # e.g. 'th-cebra' or 'th-pca3' (PCA to 3 dimensions)
+})
+preprocess_label = pmp.full_label()
+prepr_data_fname = Path('src_CEBRA/CEBRA_data') / 'all_data.pkl'
+
+from prepr import load_preprocessed_joint_data
+
+if prepr_data_fname.exists():
+    neural_data, auxiliary, session_labels = load_preprocessed_joint_data(prepr_data_fname)
+    print(f"Loaded data from {prepr_data_fname}")
+else:
+	print("Error: Preprocessed data file not found. Please run the preprocessing script first.")
+
+index_session = [i for i, s in enumerate(session_labels) if s == cfg.selected_sessions][0]
+
+import json
+
+# Opening and reading the JSON file
+with open(f'src_CEBRA/CEBRA_params/{cfg.selected_sessions}_CEBRAparams.txt', 'r') as f:
+    # Parsing the JSON file into a Python dictionary
+    cebraParams = json.load(f)
+
+with open(f'src_CEBRA/CEBRA_params/{cfg.selected_sessions}_trial_idx.txt', 'r') as f:
+    # Parsing the JSON file into a Python dictionary
+    trial_idx = json.load(f)
+
+
+
+# import matplotlib.pyplot as plt
+# plt.figure()
+# plt.imshow(cfg.neural_data.T, aspect='auto', cmap='viridis')
+# plt.legend()
+# plt.savefig("NeuralData.png")
+# print(np.shape(cfg.neural_data)) 
+# quit()
+
+validCellsDepth = cebraParams['cell_depths']
+
+cfg.CEBRA_params = cebraParams
+
+cfg.transient = 500.0  # transient period to skip at the beginning of the simulation and experiment (ms)
+
+maskTrial = np.array(trial_idx) == cfg.selected_trial
+
+cfg.dt = 1.0 #0.025 # For GPU increase the dt to not get precision errors
+cfg.recordStep = cfg.dt
+
+transientBins = int(cfg.transient/cebraParams['dt']) # number of bins to skip as transient
+
+cfg.stageId = auxiliary[index_session][maskTrial,0]
+cfg.stageId = cfg.stageId[transientBins-1:]  # remove transient
+cfg.neural_data = neural_data[index_session][maskTrial,:] # time x cells
+
+if len(validCellsDepth) > np.shape(cfg.neural_data)[1]:
+    validCellsDepth = np.sort(validCellsDepth)[:np.shape(cfg.neural_data)[1]]
+    validCellsDepth.tolist()
+elif len(validCellsDepth) < np.shape(cfg.neural_data)[1]:
+      ValueError('Number of valid cells in depth file less than number of cells in neural data')
+
+cfg.neural_data = cfg.neural_data[transientBins-1:,:]  # remove transient
+# cfg.neural_data = cfg.neural_data.T # transpose
+
+cfg.period = 'full_trial' # 'scaled_tone', 'scaled_prep', 'full_unlock' full_trial
+
+ihQuiet = 1.0 # Factor for ih gbar in PT cells at quiet state
+ihMovement = 0.25
+cfg.ihGbar = ihQuiet # multiplicative factor for ih gbar in PT cells
+
+if cfg.period == 'full_trial':
+	# Raw Data is concatenation of both
+	durationPre = 1500.
+	durationPost = 1500.
+	cfg.SimulateBaseline = False
+	cfg.preTone = durationPre
+	cfg.postTone = durationPost
+else:
+	raise ValueError('cfg.period not recognized')
+	
+cfg.addInVivoThalamus = True # To add the sampled spike times from in-vivo recordings on TVL
 cfg.duration = cfg.preTone + cfg.postTone
-cfg.dt = 0.025
-cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'cell': 1234} 
+cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'm1_sampling': 4321}  # seeds for randomizers (connectivity, input stimulation, cell locations)
 cfg.hParams = {'celsius': 34, 'v_init': -80}  
 cfg.verbose = False
 cfg.createNEURONObj = True
@@ -53,7 +137,7 @@ cfg.validateNetParams = True
 cfg.progressBar = 0
 
 cfg.includeParamsLabel = False
-cfg.timeRanges = [cfg.duration-cfg.postTone, cfg.duration]
+cfg.timeRanges = [cfg.transient, cfg.duration]
 cfg.printPopAvgRates = cfg.timeRanges
 
 cfg.checkErrors = False
@@ -275,7 +359,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
@@ -384,7 +468,9 @@ if cfg.addInVivoThalamus:
 	trimmedBaseline = defs.trimTVLSpikes(baselineSpks, cfg)
 	trimmedMovement = defs.trimTVLSpikes(movementAndPostSpks, cfg)
 
-	cfg.numSampledCellsPerLayer = defs.average_dict_entries(M1sampledCells)
+	# cfg.numSampledCellsPerLayer is an average of sampled cells per layer across all trials
+	cfg.numSampledCellsPerLayer = defs.cellPerlayer(validCellsDepth)
+      
 	cfg.spikeTimesInVivo = trimmedBaseline if cfg.SimulateBaseline else trimmedMovement
 	del baselineSpks, movementAndPostSpks, trimmedBaseline, trimmedMovement
 	gc.collect()

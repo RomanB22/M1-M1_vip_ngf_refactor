@@ -1,0 +1,24 @@
+# TODO List
+
+The method will compare the CEBRA method from experiment with the obtained from the model:
+Svearal things:
+1 - The experiment has less sampled neurons but more time points. Since we are comparing embeddings, the number of sampled neurons is not relevant (for now) but the lenght of the embedding will be, since we are gonna use linear correlation as a measure of GoF between embeddings. We will have to downsample the vector obtained from CEBRA. Potential issue: We need to have the same number of elements from before and after tone
+2 - For CEBRA in the model we can probably use all neurons? Or at least a good amount of them?
+3 - In the future we need to do a very similar comparison to make things comparable, good enough for now
+4 - Model uses 1500 ms before and 1500 ms after tone. and CEBRA experimental data was obtained doing the same filter for the trials. That keep things comparable
+-----
+Valery's idea!
+
+hmm, actually, it should be the problem. You see, the crucial thing we get from CENRA is a trained model (the one saved as .pt file). Once we have it, we can use it to transform any neural data to get the embedding (and this operation is very fast btw).
+So we can do the following:
+train cebra-model on all data from experiment session
+pick neural data of a single trial (also making sure it has same length as data from simulation) and transform it to embedding
+compare it with embedding from simulation to get, say, r^2
+In this way, we could pick several trials from experiment and in the end compute an average of r^2
+
+------
+Then, we use the fitted CEBRA model to both an experimental trial and the M1 model
+
+Finish loading the results from the data + params to run CEBRA in similar fashion as UMAP
+
+Again: model firing rates seems to be much less than experimental, at least for some neurons! Check it!! On average seems pretty similar

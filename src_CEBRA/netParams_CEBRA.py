@@ -13,7 +13,6 @@ import defs
 from pathlib import Path
 from cfg_CEBRA import cfg
 
-
 cfg.update()
 if cfg._batchtk_path_pointer is not None:
     cfg.saveFolder = cfg._batchtk_path_pointer
@@ -218,7 +217,7 @@ netParams.popParams['VIP6']  =  {'cellModel': 'HH_reduced',        'cellType': '
 netParams.popParams['NGF6']  =  {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['6'], 'density': density[('M1','nonVIP')][1]}
 
 if cfg.singleCellPops:
-    for pop in netParams.popParams.values(): pop['numCells'] = 1
+    for pop in netParams.popParams.values(): pop['numCells'] = 20 #1
 
 #------------------------------------------------------------------------------
 ## Long-range input populations (VecStims)

@@ -13,6 +13,7 @@ Contributors: salvadordura@gmail.com
 """
 
 import matplotlib; matplotlib.use('Agg')  # to avoid graphics error in servers
+import matplotlib.pyplot as plt
 from netpyne import sim
 import json
 from netParams_CEBRA import netParams, cfg
@@ -27,14 +28,17 @@ sim.net.createPops()               			# instantiate network populations
 sim.net.createCells()              			# instantiate network cells based on defined populations
 sim.net.connectCells()            			# create connections between cells based on params
 sim.net.addStims() 							# add network stimulation
-sim.setupRecording()              			# setup variables to record for each cell (spikes, V traces, etc)
+sim.setupRecording()
+
+# print(cfg.saveFolder, cfg.simLabel)
+
 #------------------------------------------------------------------------------
 # Simulation option 1: standard
-sim.runSim()                              # run parallel Neuron simulation (calling func to modify mechs)
-# # Simulation option 2: interval function to modify mechanism params
-#TODO: Check that it works properly on CoreNEURON
-# print(cfg.modifyMechs)
-# sim.runSimWithIntervalFunc(cfg.transient+cfg.preTone, defs.modifyMechsFunc, funcArgs={'cfg': cfg})       # run parallel Neuron simulation (calling func to modify mechs)
+if cfg.period == 'full_trial':
+    print(cfg.modifyMechs)
+    sim.runSimWithIntervalFunc(cfg.preTone, defs.modifyMechsFunc, funcArgs={'cfg': cfg})       # run parallel Neuron simulation (calling func to modify mechs)
+else:
+    sim.runSim()                              # run parallel Neuron simulation (calling func to modify mechs)
 
 sim.gatherData()                  			# gather spiking data and cell info from each node
 # Gather/save data option 2: distributed saving across nodes
@@ -50,36 +54,71 @@ sim.analysis.plotData()         			# plot spike raster etc
 print('completed simulation...')
 
 if sim.rank == 0:
-    # netParams.save("{}/{}_params.json".format(cfg.saveFolder, cfg.simLabel))
     print('transmitting data...')
     inputs = cfg.get_mappings()
-    # print(json.dumps({**inputs}))
-    results = sim.analysis.popAvgRates(tranges=cfg.timeRanges, show=False) #TODO: Avoid printing firing rates
+    cfg.sampled_cells = defs.sampleNeuronsFromModel(sim, cfg, plot=False)
 
-    sim.simData['popRates'] = results
+    ModelRates = defs.binnedRaster(sim.simData, cfg).T
+    import numpy as np
+    # print(np.shape(ModelRates), np.shape(cfg.neural_data))
 
-    fitnessFuncArgs = {}
-    pops = {}
-    ## Exc pops
-    Epops = ['IT2', 'IT4', 'IT5A', 'IT5B', 'PT5B', 'IT6', 'CT6']
-    Etune = {'target': 5, 'width': 5, 'min': 0.5}
-    for pop in Epops:
-        pops[pop] = Etune
-    ## Inh pops
-    Ipops = ['NGF1', 'PV2', 'SOM2', 'VIP2', 'NGF2',
-             'PV4', 'SOM4', 'VIP4', 'NGF4',
-             'PV5A', 'SOM5A', 'VIP5A', 'NGF5A',
-             'PV5B', 'SOM5B', 'VIP5B', 'NGF5B',
-             'PV6', 'SOM6', 'VIP6', 'NGF6']
-    Itune = {'target': 10, 'width': 15, 'min': 0.25}
-    for pop in Ipops:
-        pops[pop] = Itune
-    fitnessFuncArgs['pops'] = pops
-    fitnessFuncArgs['maxFitness'] = 1000
+    plt.figure()
+    plt.imshow(ModelRates.T, aspect='auto', cmap='hot')
+    plt.colorbar()
+    filename = cfg.saveFolder + "/" + cfg.simLabel + f'_ModelRates.png'
+    plt.savefig(filename)
+    plt.close()
 
-    rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
-    results['loss'] = rateLoss
+    plt.figure()
+    plt.imshow(cfg.neural_data.T, aspect='auto', cmap='hot')
+    plt.colorbar()
+    filename = cfg.saveFolder + "/" + cfg.simLabel + f'_ExpRates.png'
+    plt.savefig(filename)
+    plt.close()
+
+    ####
+    # Load CEBRA MODEL
+    ###
+    import cebra
+    model_label = 'joy' # 'joy' 'stg' 'stg-joy' 'time' 
+    file_path = Path('src_CEBRA/CEBRA_data/230517_2759_1606VAL/decode_rs_iter100000_ndim3_conddelta/models/') / f'model_{model_label}.pt'
+    model = cebra.CEBRA.load(file_path)
+    print(f"Loaded model from {file_path}")
+
+    from matplotlib.colors import LinearSegmentedColormap
+    colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)] # R -> G -> B
+    if len(np.unique(cfg.stageId)) == 4:
+        colors += [(1, 1, 0)] # R -> G -> B -> Y
+    cmap_name = 'cebra'
+    cmap = LinearSegmentedColormap.from_list(cmap_name, colors, N=len(colors))
+
+    labels = ['baseline', 'tone_on', 'after tone']
+    values = [0, 1, 2]  # numeric codes in aux[:, 0]
+    numplots = 1 #len(neural_data)
+    fig, axs = plt.subplots(1, numplots, figsize=(5 * numplots, 6), subplot_kw={'projection': '3d'})
+
+    embedding_exp = model.transform(cfg.neural_data)
+    ax1 = cebra.plot_embedding(embedding_exp, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap)
+    filename = cfg.saveFolder + "/" + cfg.simLabel + f'_cebra_embedding_exp_{model_label}.png'
+    fig = ax1.get_figure()
+    fig.savefig(filename)
+    ax1.clear()
+    plt.close(fig)
+
+    embedding_model = model.transform(ModelRates)
+    ax2 = cebra.plot_embedding(embedding_model, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap)
+    filename = cfg.saveFolder + "/" + cfg.simLabel + f'_cebra_embedding_model_{model_label}.png'
+    fig = ax2.get_figure()
+    fig.savefig(filename)
+    ax2.clear()
+    plt.close(fig)
+
+    r_2 = defs.linear_fit(embedding_exp, embedding_model) # r_2 goes from -inf to 1. We need to change it to be a loss function.
+    loss = 1 - r_2
+
+    results = {}
+    results['loss'] = 1 - r_2
     out_json = json.dumps({**inputs, **results})
 
-    print(out_json)
+    # print(out_json)
     sim.send(out_json)

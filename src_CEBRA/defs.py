@@ -407,56 +407,7 @@ def filter_by_enabled_cells_yaml(netParams, cells_yaml_path: str | Path, verbose
 
     return report
 
-# ------- UMAP functions --------
-
-def load_umap_results(reg='m1', n_components=2, period='scaled_prep'):
-    import joblib
-    
-    filename = f'./UMAP_manifold/{period}/umap_results_n{n_components}_{reg}.pkl'
-    loaded_results = joblib.load(filename)
-
-    loaded_reprs = loaded_results['representations']
-    loaded_reds = loaded_results['reductions']
-    loaded_names = loaded_results['folder_names']
-    task_progress = loaded_results['task_progress']
-    validCellsDepth =  loaded_results['validCellsDepth']
-
-    M1sampledCells = []
-    RawData = []
-    for i in range(len(loaded_names)):
-        idx = np.argsort(validCellsDepth[i])
-        counts = cellPerlayer(validCellsDepth[i][idx])
-        M1sampledCells.append(counts)
-        # RawData.append(loaded_reds[i]._raw_data[:,idx])
-        RawData.append(loaded_reds[i][:,idx])
-    import json
-    params = json.load(open(f'./UMAP_manifold/UMAP_params.json', 'r'))
-
-    return loaded_reprs, loaded_reds, loaded_names, task_progress, M1sampledCells, RawData, params
-
-def overlapping_window(np_array, window_size=25):
-    from scipy import ndimage
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(np_array, aspect='auto', origin='lower')
-    plt.colorbar()
-    plt.savefig('before_window.png')
-    plt.figure()
-    plt.imshow(ndimage.uniform_filter1d(np_array, size=window_size, axis=1, mode='constant'), aspect='auto', origin='lower')
-    plt.colorbar()
-    plt.savefig('after_window.png')
-    return ndimage.uniform_filter1d(np_array, size=window_size, axis=1, mode='constant')
-
-def non_overlapping_window(np_array, window_size=25):
-    import math
-    window_hop = window_size
-    start_frame = window_size
-    end_frame = window_hop * math.floor(float(np_array.shape[1]) / window_hop)
-    window = []
-    for frame_idx in range(start_frame, end_frame, window_hop):
-        window.append(np.mean(np_array[:, frame_idx - window_size:frame_idx], axis=1))  # Add mean
-
-    return np.transpose(np.vstack(window))
+# ------- CEBRA functions --------
 
 def sampleNeuronsFromModel(sim, cfg, plot=False):
     """
@@ -541,9 +492,23 @@ def bin_spikes(spike_times, dt, wdw_start, wdw_end):
         neural_data[:, i] = np.histogram(spike_times[i], edges)[0]
     return neural_data
 
+def smoothen_spikes(neural_data, kernel_size=23, sigma=2.5): # kernel_size should be an odd number
+    import scipy
+    x = np.arange(-(kernel_size // 2), kernel_size // 2 + 1)
+    kernel = np.exp(-x**2 / (2 * sigma**2))
+    kernel = kernel / np.sum(kernel)  # Normalize to preserve unit area
+    
+    # Repeat the kernel to match the number of neurons (M)
+    kernel = np.tile(kernel, (neural_data.shape[0], 1))
+    
+    conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same", axes=1)
+    # conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same") # wrong way of smoothing, but worked good - need to find why
+    
+    return conv
+
 def binnedRaster(simData, cfg):
-    fs = cfg.UMAP_params['fs']
-    bin_time = cfg.UMAP_params['bin_time']
+    fs = 1/cfg.recordStep
+    bin_time = cfg.CEBRA_params['dt']
     spike_times = np.array(simData['spkt'].to_python())
     spike_ids = np.array(simData['spkid'].to_python())
     sampledCells = [j for i in cfg.sampled_cells.values() for j in i]
@@ -563,113 +528,19 @@ def binnedRaster(simData, cfg):
 
     # Start analysis from transient time, end at original duration
     start_time = transient_sec
-    end_time = cfg.duration / 1000. + 1./fs
-    Raster = bin_spikes(spike_times, 1./fs, start_time, end_time)
-    Raster = overlapping_window(Raster.T, window_size=cfg.UMAP_params['window_size'])
+    end_time = cfg.duration / 1000. + bin_time*fs/1000.
+    Raster = bin_spikes(spike_times, bin_time*fs/1000., start_time, end_time).T
+    neural_data_smooth = smoothen_spikes(Raster)
+
+    # plot_data(neural_data, neural_data_smooth, all_aux)
+    Raster = neural_data_smooth
     # Convert to rate
     Raster /= bin_time
-    return Raster.T
+    return Raster
 
-def concatenateExpModelRate(ExpRaster, ModelRaster):
-    # Concatenate the experimental and model rate data to calculate UMAP on the combined data
-    import numpy as np
-
-    # transpose
-    ExpRaster = ExpRaster.T
-    ModelRaster = ModelRaster.T
-
-    target_cols = ModelRaster.shape[1]
-    ExpRaster = ExpRaster[:, -target_cols:]
-
-    # Safe row-wise z-normalization
-    ExpRaster = (ExpRaster - ExpRaster.mean(axis=1, keepdims=True)) / np.where(ExpRaster.std(axis=1, keepdims=True) == 0, 1, ExpRaster.std(axis=1, keepdims=True))
-    ModelRaster = (ModelRaster - ModelRaster.mean(axis=1, keepdims=True)) / np.where(ModelRaster.std(axis=1, keepdims=True) == 0, 1, ModelRaster.std(axis=1, keepdims=True))
-
-    # concatenate
-    Raster = np.hstack((ExpRaster, ModelRaster))
-    ConcatenatedLabels = np.array([0]*np.shape(ExpRaster)[1] + [1]*np.shape(ModelRaster)[1])  # 0=ExpRaster, 1=ModelRaster
-    # print(ConcatenatedLabels, np.shape(Raster))
-    return Raster, ConcatenatedLabels
-
-def UMAP(n_neighbors,min_dist,n_components,metric,randomNumber,Raster):
-    import umap
-    from scipy.stats import pearsonr
-    umap_reduction = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist,
-                                n_components=n_components,
-                                metric=metric, random_state=randomNumber).fit(Raster.T)
-    umap_representation = umap_reduction.transform(Raster.T)
-    umap_representation_back = umap_reduction.inverse_transform(umap_representation).T
-    (pearsonCorr, pvalue) = pearsonr(Raster.flatten(), umap_representation_back.flatten())
-
-    return umap_representation, umap_reduction, pearsonCorr, pvalue
-
-def calculateUMAP(Raster, cfg):
-    n_neighbors, min_dist, metric, randomNumber = cfg.UMAP_params['n_neighbors'], cfg.UMAP_params['min_dist'], cfg.UMAP_params['metric'], cfg.UMAP_params['randomNumber']
-    umap_representation, umap_reduction, pearsonCorr, pvalue = UMAP(n_neighbors, min_dist, n_components=cfg.n_components, metric=metric, randomNumber=randomNumber, Raster=Raster)
-    return umap_representation, umap_reduction, pearsonCorr, pvalue
-
-def umapFitnessFunc(umap_representation, ConcatenatedLabels):
-    embeddingExp = umap_representation[ConcatenatedLabels==0, :]
-    embeddingMod = umap_representation[ConcatenatedLabels==1, :]
-    weightExp = np.ones((embeddingExp.shape[0],)) / embeddingExp.shape[0]
-    weightMod = np.ones((embeddingMod.shape[0],)) / embeddingMod.shape[0]
-
-    # Loss is the mean distance between the curves, parametrized by the time
-    diff = umap_representation[ConcatenatedLabels==1,:] - umap_representation[ConcatenatedLabels==0,:]    
-    d = np.linalg.norm(diff, axis=1)  # per-time distances, shape (N,)
-    D_rms  = np.sqrt(np.mean(d**2))
-
-    from scipy.spatial import procrustes
-
-    # A, B are (N,2) arrays (need same number of points, same order)
-    mtx1, mtx2, disparity = procrustes(umap_representation[ConcatenatedLabels==0,:], umap_representation[ConcatenatedLabels==1,:])
-
-    import ot  # pip install POT
-    # Cost matrix = pairwise squared distances
-    M = ot.dist(embeddingExp, embeddingMod, metric='euclidean')**2
-
-    # Earth Mover’s Distance (Wasserstein-2 squared)
-    emd2 = ot.emd2(weightExp, weightMod, M)
-    wasserstein_dist = np.sqrt(emd2)
-
-    sw_dist = ot.sliced.sliced_wasserstein_distance(embeddingExp, embeddingMod, n_projections=500)
-    print("2D Wasserstein distance:", wasserstein_dist)
-    print("Sliced Wasserstein distance:", sw_dist)
-
-    return wasserstein_dist, sw_dist, D_rms, disparity
-
-def plot_embedding(embedding, labels, cfg, colors=("blue", "red"), alpha=0.7, size=50, title="Embedding"):
-    """
-    Plot 2D embedding with two subsets colored differently.
-    
-    Parameters
-    ----------
-    embedding : array-like, shape (n_samples, 2)
-        The 2D embedding (e.g., UMAP output).
-    labels : array-like, shape (n_samples,)
-        Binary labels (0 or 1) indicating subset membership.
-    colors : tuple
-        Colors for the two subsets.
-    alpha : float
-        Transparency of points.
-    size : int
-        Point size.
-    title : str
-        Plot title.
-    """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    embedding = np.array(embedding)
-    labels = np.array(labels)
-    
-    plt.figure(figsize=(8,6))
-    plt.scatter(embedding[labels==0,0], embedding[labels==0,1],
-                c=colors[0], alpha=alpha, s=size, label="Experimental")
-    plt.scatter(embedding[labels==1,0], embedding[labels==1,1],
-                c=colors[1], alpha=alpha, s=size, label="Model")
-    plt.title(title)
-    plt.legend()
-    filename = cfg.saveFolder + "/" + cfg.simLabel + "_umap.png"
-    plt.savefig(filename)
-    plt.close()
-
+def linear_fit(emb1, emb2):
+    from sklearn.linear_model import LinearRegression
+    fit = LinearRegression().fit(emb1, emb2)
+    # coef, intercept = fit.coef_, fit.intercept_
+    r_2 = fit.score(emb1, emb2)
+    return r_2
