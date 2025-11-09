@@ -84,7 +84,7 @@ cfg.transient = 500.0  # transient period to skip at the beginning of the simula
 
 maskTrial = np.array(trial_idx) == cfg.selected_trial
 
-cfg.dt = 1.0 #0.025 # For GPU increase the dt to not get precision errors
+cfg.dt = 0.025 # For GPU increase the dt to not get precision errors
 cfg.recordStep = cfg.dt
 
 transientBins = int(cfg.transient/cebraParams['dt']) # number of bins to skip as transient
