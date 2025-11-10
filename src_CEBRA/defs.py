@@ -429,16 +429,15 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
     # Sample neurons from the model following the same sampling of layers as in cfg.numSampledCellsPerLayer. Use same random seed to sample always the same neurons
     import random
     random.seed(cfg.seeds['m1_sampling'])
-    
+    layerAux = {k: v for k, v in cfg.layer.items() if not k.startswith('long')}
     # --- Helper to map yNorm -> layer ---
     def get_layer(y_norm):
-        for layer, (ymin, ymax) in cfg.layer.items():
+        for layer, (ymin, ymax) in layerAux.items():
             if ymin <= y_norm < ymax:
                 return layer
         return None
     
     # --- Collect cells by layer ---
-    layerAux = {k: v for k, v in cfg.layer.items() if not k.startswith('long')}
     cells_by_layer = {layer: [] for layer in layerAux.keys()}
     for cell in sim.net.cells:
         y_norm = cell.tags.get('ynorm')
