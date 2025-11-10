@@ -438,7 +438,8 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
         return None
     
     # --- Collect cells by layer ---
-    cells_by_layer = {layer: [] for layer in cfg.layer.keys()}
+    layerAux = {k: v for k, v in cfg.layer.items() if not k.startswith('long')}
+    cells_by_layer = {layer: [] for layer in layerAux.keys()}
     for cell in sim.net.cells:
         y_norm = cell.tags.get('ynorm')
         if y_norm is None:
