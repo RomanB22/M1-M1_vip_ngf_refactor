@@ -429,22 +429,22 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
     # Sample neurons from the model following the same sampling of layers as in cfg.numSampledCellsPerLayer. Use same random seed to sample always the same neurons
     import random
     random.seed(cfg.seeds['m1_sampling'])
-    layerAux = {k: v for k, v in cfg.layer.items() if not k.startswith('long')}
+    
     # --- Helper to map yNorm -> layer ---
     def get_layer(y_norm):
-        for layer, (ymin, ymax) in layerAux.items():
+        for layer, (ymin, ymax) in cfg.layer.items():
             if ymin <= y_norm < ymax:
                 return layer
         return None
     
     # --- Collect cells by layer ---
-    cells_by_layer = {layer: [] for layer in layerAux.keys()}
+    cells_by_layer = {layer: [] for layer in cfg.layer.keys() if not layer.startswith('long') }
     for cell in sim.net.cells:
         y_norm = cell.tags.get('ynorm')
         if y_norm is None:
             continue
         layer = get_layer(y_norm)
-        if layer:
+        if layer and not layer.startswith('long'):
             cells_by_layer[layer].append(cell.gid)
 
     # --- Sample from each layer ---
@@ -480,7 +480,6 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
         plt.show()
 
     return sampled_cells
-
 def bin_spikes(spike_times, dt, wdw_start, wdw_end):
     # Function that puts spikes into bins
     edges = np.arange(wdw_start, wdw_end, dt)  # Get edges of time bins
