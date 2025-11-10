@@ -438,13 +438,13 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
         return None
     
     # --- Collect cells by layer ---
-    cells_by_layer = {layer: [] for layer in cfg.layer.keys() if not layer.startswith('long') }
-    for cell in sim.net.cells:
+    cells_by_layer = {layer: [] for layer in cfg.layer.keys()}
+    for cell in sim.net.allCells:
         y_norm = cell.tags.get('ynorm')
         if y_norm is None:
             continue
         layer = get_layer(y_norm)
-        if layer and not layer.startswith('long'):
+        if layer:
             cells_by_layer[layer].append(cell.gid)
 
     # --- Sample from each layer ---
@@ -480,6 +480,7 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
         plt.show()
 
     return sampled_cells
+
 def bin_spikes(spike_times, dt, wdw_start, wdw_end):
     # Function that puts spikes into bins
     edges = np.arange(wdw_start, wdw_end, dt)  # Get edges of time bins
@@ -500,7 +501,7 @@ def smoothen_spikes(neural_data, kernel_size=23, sigma=2.5): # kernel_size shoul
     # Repeat the kernel to match the number of neurons (M)
     kernel = np.tile(kernel, (neural_data.shape[0], 1))
     
-    conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same", axes=0)
+    conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same", axes=1)
     # conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same") # wrong way of smoothing, but worked good - need to find why
     
     return conv
@@ -529,7 +530,7 @@ def binnedRaster(simData, cfg):
     start_time = transient_sec
     end_time = cfg.duration / 1000. + bin_time*fs/1000.
     Raster = bin_spikes(spike_times, bin_time*fs/1000., start_time, end_time).T
-    neural_data_smooth = smoothen_spikes(Raster)
+    neural_data_smooth = smoothen_spikes(Raster, kernel_size=5)
 
     # plot_data(neural_data, neural_data_smooth, all_aux)
     Raster = neural_data_smooth

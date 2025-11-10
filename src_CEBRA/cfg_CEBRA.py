@@ -85,6 +85,7 @@ cfg.transient = 500.0  # transient period to skip at the beginning of the simula
 maskTrial = np.array(trial_idx) == cfg.selected_trial
 
 cfg.dt = 0.025 # For GPU increase the dt to not get precision errors
+cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.recordStep = cfg.dt
 
 transientBins = int(cfg.transient/cebraParams['dt']) # number of bins to skip as transient
@@ -359,7 +360,6 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
