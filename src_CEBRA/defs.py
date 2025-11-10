@@ -501,7 +501,7 @@ def smoothen_spikes(neural_data, kernel_size=23, sigma=2.5): # kernel_size shoul
     # Repeat the kernel to match the number of neurons (M)
     kernel = np.tile(kernel, (neural_data.shape[0], 1))
     
-    conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same", axes=1)
+    conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same", axes=0)
     # conv = scipy.signal.fftconvolve(neural_data, kernel, mode="same") # wrong way of smoothing, but worked good - need to find why
     
     return conv
