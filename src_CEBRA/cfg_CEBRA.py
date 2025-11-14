@@ -67,20 +67,11 @@ with open(f'src_CEBRA/CEBRA_params/{cfg.selected_sessions}_trial_idx.txt', 'r') 
     trial_idx = json.load(f)
 
 
-
-# import matplotlib.pyplot as plt
-# plt.figure()
-# plt.imshow(cfg.neural_data.T, aspect='auto', cmap='viridis')
-# plt.legend()
-# plt.savefig("NeuralData.png")
-# print(np.shape(cfg.neural_data)) 
-# quit()
-
 validCellsDepth = cebraParams['cell_depths']
 
+cfg.transientExp = 0.0  # transient period to skip at the beginning of the experiment (ms)
+cfg.transient = 1500.0  # transient period to skip at the beginning of the model (ms)
 cfg.CEBRA_params = cebraParams
-
-cfg.transient = 500.0  # transient period to skip at the beginning of the simulation and experiment (ms)
 
 maskTrial = np.array(trial_idx) == cfg.selected_trial
 
@@ -88,10 +79,10 @@ cfg.dt = 0.025 # For GPU increase the dt to not get precision errors
 cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.recordStep = cfg.dt
 
-transientBins = int(cfg.transient/cebraParams['dt']) # number of bins to skip as transient
+transientBins = int(cfg.transientExp/cebraParams['dt']) # number of bins to skip as transient
 
 cfg.stageId = auxiliary[index_session][maskTrial,0]
-cfg.stageId = cfg.stageId[transientBins-1:]  # remove transient
+cfg.stageId = cfg.stageId[max(transientBins-1,0):]  # remove transient
 cfg.neural_data = neural_data[index_session][maskTrial,:] # time x cells
 
 if len(validCellsDepth) > np.shape(cfg.neural_data)[1]:
@@ -100,8 +91,16 @@ if len(validCellsDepth) > np.shape(cfg.neural_data)[1]:
 elif len(validCellsDepth) < np.shape(cfg.neural_data)[1]:
       ValueError('Number of valid cells in depth file less than number of cells in neural data')
 
-cfg.neural_data = cfg.neural_data[transientBins-1:,:]  # remove transient
+cfg.neural_data = cfg.neural_data[max(transientBins-1,0):,:]  # remove transient
 # cfg.neural_data = cfg.neural_data.T # transpose
+
+# import matplotlib.pyplot as plt
+# plt.figure()
+# plt.imshow(cfg.neural_data.T, aspect='auto', cmap='viridis')
+# plt.colorbar()
+# plt.savefig("NeuralData.png")
+# print(np.shape(cfg.neural_data)) 
+# quit()
 
 cfg.period = 'full_trial' # 'scaled_tone', 'scaled_prep', 'full_unlock' full_trial
 
@@ -111,17 +110,17 @@ cfg.ihGbar = ihQuiet # multiplicative factor for ih gbar in PT cells
 
 if cfg.period == 'full_trial':
 	# Raw Data is concatenation of both
-	durationPre = 1500.
+	durationPre = 1500. + cfg.transient
 	durationPost = 1500.
 	cfg.SimulateBaseline = False
 	cfg.preTone = durationPre
 	cfg.postTone = durationPost
 else:
 	raise ValueError('cfg.period not recognized')
-	
+
 cfg.addInVivoThalamus = True # To add the sampled spike times from in-vivo recordings on TVL
 cfg.duration = cfg.preTone + cfg.postTone
-cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'm1_sampling': 4321}  # seeds for randomizers (connectivity, input stimulation, cell locations)
+cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'm1_sampling': 1234}  # seeds for randomizers (connectivity, input stimulation, cell locations)
 cfg.hParams = {'celsius': 34, 'v_init': -80}  
 cfg.verbose = False
 cfg.createNEURONObj = True
@@ -175,11 +174,11 @@ cfg.recordStep = cfg.dt
 #------------------------------------------------------------------------------
 # Saving
 #------------------------------------------------------------------------------
-cfg.simLabel = 'v103_tune3'
+cfg.simLabel = 'v103_tune4'
 cfg.saveFolder = './batchData/v103_manualTune'
 cfg.savePickle = False
 cfg.saveJson = False
-cfg.saveDataInclude = ['simData', 'simConfig', 'netParams']#, 'net']
+cfg.saveDataInclude = ['simData', 'simConfig', 'netParams']
 cfg.backupCfgFile = None #['cfg.py', 'backupcfg/'] 
 cfg.gatherOnlySimData = False
 cfg.saveCellSecs = False
@@ -204,7 +203,7 @@ cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'},
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'trace', 'figSize': (10,4), 
-								'saveFig': True, 'subtitles': True} 
+								'saveFig': True, 'subtitles': True, 'legend': False} 
 #------------------------------------------------------------------------------
 # Cells
 #------------------------------------------------------------------------------
@@ -322,6 +321,8 @@ ihQuiet = 1.0 # Factor for ih gbar in PT cells at quiet state
 ihMovement = 0.25 # Factor for ih gbar in PT cells at movement state
 cfg.ihModel = 'migliore'  # ih model
 cfg.ihGbar = ihQuiet if cfg.SimulateBaseline else ihMovement # multiplicative factor for ih gbar in PT cells
+if cfg.period == 'full_trial':
+    cfg.ihGbar = ihQuiet
 cfg.ihGbarZD = None # multiplicative factor for ih gbar in PT cells
 cfg.ihGbarBasal = 1.0 # 0.1 # multiplicative factor for ih gbar in PT cells
 cfg.ihlkc = 0.2 # ih leak param (used in Migliore)
@@ -338,7 +339,7 @@ cfg.gpas = 0.5  # multiplicative factor for pas g in PT cells
 cfg.epas = 0.9  # multiplicative factor for pas e in PT cells
 
 cfg.modifyMechs = {'startTime': cfg.preTone, 'endTime': cfg.duration, 
-                   'cellType':'PT', 'mech': 'hd', 'property': 'gbar', 'newFactor': 1.00, 'origFactor': 0.75}
+                   'cellType':'PT', 'mech': 'hd', 'property': 'gbar', 'newFactor': ihMovement, 'origFactor': ihQuiet}
 
 #------------------------------------------------------------------------------
 # Synapses
@@ -435,10 +436,14 @@ TVLRates = TVLquiet if cfg.SimulateBaseline else TVLmovement
 
 cfg.ratesLong = {'TPO': [0, 5], 'TVL': TVLRates, 'S1': [0, 5], 'S2': [0, 5], 'cM1': LongRangeQuiet, 'M2': LongRangeQuiet, 'OC': [0,5]}
 
-## input pulses
+## input pulses That is to change or increase the rate of any of the longRange inputs
 cfg.addPulses = False
-cfg.pulse = {'pop': 'None', 'start': 1000, 'end': 1100, 'rate': 20, 'noise': 0.8}
-cfg.pulse2 = {'pop': 'None', 'start': 1000, 'end': 1200, 'rate': 20, 'noise': 0.5, 'duration': None}
+# cfg.pulse = {'pop': 'None', 'start': cfg.preTone, 'end': cfg.duration, 'rate': [0, 10], 'noise': 0.8}
+# cfg.pulse2 = {'pop': 'None', 'start': cfg.preTone, 'end': cfg.duration, 'rate': [0, 10], 'noise': 0.5, 'duration': None}
+
+# if cfg.period == 'full_trial':
+#     cfg.addPulses = True
+
 
 #------------------------------------------------------------------------------
 # Current inputs 

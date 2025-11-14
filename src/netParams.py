@@ -65,7 +65,9 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 #------------------------------------------------------------------------------
 ## Load cell rules previously saved using netpyne format
 cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
-    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
+    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
+if ['PT5B_full'] not in cellParamLabels and cfg.pt5b_variant == "tim":
+    cellParamLabels += ['PT5B_full']
 loadCellParams = cellParamLabels
 saveCellParams = False #True
 
@@ -111,7 +113,6 @@ class Ctx:
 
 cfg_path = PROJECT_ROOT / "config" / "cells.yml"
 cell_cfg = yaml.safe_load(open(cfg_path)) if cfg_path.exists() else {}
-
 
 ctx = Ctx()
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))

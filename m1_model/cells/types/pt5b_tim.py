@@ -46,12 +46,10 @@ class PT5BFullTimFromPy(CellProvider):
         netParams.renameCellParamsSec(label=label, oldSec="soma_0", newSec="soma")
 
         # 2) spike generation site on axon_0
-        rule.setdefault("secs", {}).setdefault("axon_0", {}).setdefault("spikeGenLoc", 0.5)
+        rule['secs']['axon_0']['spikeGenLoc'] = 0.5
 
         # 3) add pt3d to axon sections so SecList ops remain stable
-        ax0_geom = rule["secs"].setdefault("axon_0", {}).setdefault("geom", {})
-        ax1_geom = rule["secs"].setdefault("axon_1", {}).setdefault("geom", {})
-        ax0_geom["pt3d"] = [
+        rule['secs']['axon_0']['geom']['pt3d'] = [
             [-25.435224533081055, 34.14994812011719, 0, 1.6440753936767578],
             [-25.065839767456055, 34.10675811767578, 0, 1.6440753936767578],
             [-24.327072143554688, 34.02037811279297, 0, 1.6440753936767578],
@@ -176,7 +174,7 @@ class PT5BFullTimFromPy(CellProvider):
             [63.58642578125, 23.7412109375, 0, 1.6440753936767578],
             [63.955810546875, 23.698020935058594, 0, 1.6440753936767578],
         ]
-        ax1_geom["pt3d"] = [
+        rule['secs']['axon_1']['geom']['pt3d']  = [
             [63.955810546875, 23.698020935058594, 0, 1.6440753936767578],
             [65.31021881103516, 23.539657592773438, 0, 1.6440753936767578],
             [68.01904296875, 23.222932815551758, 0, 1.6440753936767578],
@@ -202,39 +200,28 @@ class PT5BFullTimFromPy(CellProvider):
         netParams.addCellParamsSecList(label=label, secListName="perisom", somaDist=[0, 50])
         netParams.addCellParamsSecList(label=label, secListName="below_soma", somaDistY=[-600, 0])
 
-        names = list(rule["secs"].keys())
-        alldend = [s for s in names if ("dend" in s or "apic" in s)]
-        apicdend = [s for s in names if "apic" in s]
-        spiny = [s for s in alldend if s not in nonSpiny]
+        rule['secLists']['alldend'] = [sec for sec in rule.secs if ('dend' in sec or 'apic' in sec)]  # basal+apical
+        rule['secLists']['apicdend'] = [sec for sec in rule.secs if ('apic' in sec)]  # apical
+        rule['secLists']['spiny'] = [sec for sec in rule['secLists']['alldend'] if sec not in nonSpiny]
 
-        rule["secLists"]["alldend"] = alldend
-        rule["secLists"]["apicdend"] = apicdend
-        rule["secLists"]["spiny"] = spiny
-        perisom = rule["secLists"].get("perisom", [])
-        rule["secLists"]["perisom"] = [s for s in perisom if s not in nonSpiny]
+        for sec in nonSpiny:  # N.B. apic_1 not in `perisom` . `apic_0` and `apic_114` are
+            if sec in rule['secLists']['perisom']:  # fixed logic
+                rule['secLists']['perisom'].remove(sec)
 
-        # 7) Ih scaling (skip axon_*)
-        if hasattr(cfg, "ihGbar"):
-            for secName, sec in rule["secs"].items():
-                if secName in ("axon_0", "axon_1"):
-                    continue
-                Ih = sec.get("mechs", {}).get("Ih")
-                if Ih and "gIhbar" in Ih:
-                    g = Ih["gIhbar"]
-                    scaled = [v * cfg.ihGbar for v in g] if isinstance(g, list) else g * cfg.ihGbar
-                    if secName.startswith("dend") and hasattr(cfg, "ihGbarBasal"):
-                        scaled = [v * cfg.ihGbarBasal for v in scaled] if isinstance(scaled, list) else scaled * cfg.ihGbarBasal
-                    Ih["gIhbar"] = scaled
+        # Adapt ih params based on cfg param
+        for secName in rule['secs']:
+            for mechName, mech in rule['secs'][secName]['mechs'].items():
+                if mechName in ['Ih']:
+                    mech['gIhbar'] = [g * cfg.ihGbar for g in mech['gIhbar']] if isinstance(mech['gIhbar'], list) else mech[
+                                                                                                                        'gIhbar'] * cfg.ihGbar
+                    if secName.startswith('dend'):
+                        mech['gIhbar'] *= cfg.ihGbarBasal  # modify ih conductance in soma+basal dendrites
 
-        # 8) Reduce dendritic Na on apical sections
-        if hasattr(cfg, "dendNa"):
-            for secName, sec in rule["secs"].items():
-                if secName.startswith("apic"):
-                    mechs = sec.get("mechs", {})
-                    for mname in ("na12", "na12mut"):
-                        if mname in mechs and "gbar" in mechs[mname]:
-                            g = mechs[mname]["gbar"]
-                            mechs[mname]["gbar"] = [v * cfg.dendNa for v in g] if isinstance(g, list) else g * cfg.dendNa
+        # Decrease dendritic Na
+        for secName in netParams.cellParams['PT5B_full']['secs']:
+            if secName.startswith('apic'):
+                netParams.cellParams['PT5B_full']['secs'][secName]['mechs']['na12']['gbar'] *= cfg.dendNa
+                netParams.cellParams['PT5B_full']['secs'][secName]['mechs']['na12mut']['gbar'] *= cfg.dendNa
 
         # 9) Weight normalization
         netParams.addCellParamsWeightNorm(
@@ -249,14 +236,14 @@ class PT5BFullTimFromPy(CellProvider):
                 label=label,
                 fileName=str(self.project_root / "cells" / "Na12HH16HH_TF.json"),
             )
-        rule = netParams.cellParams["PT5B_full"]
+        # rule = netParams.cellParams["PT5B_full"]
         param_path = str(
-            self.project_root / "cells" / "Neuron_HH_Adult-main" / "Neuron_Model_12HH16HH" / "params" / "na12annaTFHH2mut.txt"
+            self.project_root / "cells" / "Neuron_Model_12HH16HH" / "params" / "na12annaTFHH2mut.txt"
         )
-        try:
-            apply_na_paramfile_to_rule(rule, param_path)
-        except FileNotFoundError:
-            pass
+        # try:
+        #     apply_na_paramfile_to_rule(rule, param_path)
+        # except FileNotFoundError:
+        #     pass
 
     # ------------------------------ ImportSpec --------------------------------
 
@@ -270,11 +257,10 @@ class PT5BFullTimFromPy(CellProvider):
         self.ctx = ctx
 
         label = "PT5B_full"
-        file_py = self.project_root / "cells" / "Neuron_HH_Adult-main" / "Na12HMMModel_TF.py"
+        file_py = self.project_root / "cells" / "Neuron_Model_12HH16HH" / "Na12HH_Model_TF.py"
         json_params_path = (
             self.project_root
             / "cells"
-            / "Neuron_HH_Adult-main"
             / "Neuron_Model_12HH16HH"
             / "params"
             / "na12annaTFHH2mut.txt"
@@ -283,11 +269,10 @@ class PT5BFullTimFromPy(CellProvider):
 
         # 1) CSV -> JSON parameter write
         variant = ctx.cfg.variant if getattr(ctx.cfg, "loadmutantParams", False) else "WT"
-        csv_path = self.project_root / "cells" / "Neuron_HH_Adult-main" / "MutantParameters_updated_062725.csv"
+        csv_path = self.project_root / "cells" / "Neuron_Model_12HH16HH" / "MutantParameters_updated_062725.csv"
         variants = csv_to_dict(str(csv_path))
         sorted_variant = dict(sorted(variants[variant].items()))
         print("Writing Na12 model params JSON for variant:", variant, sorted_variant)
-        
 
         for k, v in sorted_variant.items():
             sorted_variant[k] = float(v)

@@ -19,7 +19,7 @@ import json
 from netParams_CEBRA import netParams, cfg
 from pathlib import Path
 import defs
-
+import numpy as np
 
 sim.initialize(
     simConfig = cfg, 	
@@ -57,20 +57,55 @@ if sim.rank == 0:
     print('transmitting data...')
     inputs = cfg.get_mappings()
     cfg.sampled_cells = defs.sampleNeuronsFromModel(sim, cfg, plot=False)
-
+    print(cfg.sampled_cells)
+    
     ModelRates = defs.binnedRaster(sim.simData, cfg).T
+
+    ModelRatesNorm = (ModelRates - ModelRates.mean(axis=0, keepdims=True)) / np.where(ModelRates.std(axis=0, keepdims=True)==0, 1, ModelRates.std(axis=0, keepdims=True))
+    ExpRatesNorm = (cfg.neural_data - cfg.neural_data.mean(axis=0, keepdims=True)) / np.where(cfg.neural_data.std(axis=0, keepdims=True)==0, 1, cfg.neural_data.std(axis=0, keepdims=True))
+
+    cfg.neural_data = ExpRatesNorm
+
+    n = cfg.neural_data.shape[0]      # target time length
+    m = ModelRatesNorm.shape[0]
+
+    if m < n:
+        raise ValueError(f"ModelRatesNorm is shorter ({m}) than neural_data ({n}).")
+
+    # end-align ModelRates to neural_data (keep the last n rows)
+    ModelRates = ModelRatesNorm[m - n:, :]
+
+    # Boolean mask: True for columns that are all zeros
+    zero_cols_mask = np.all(ExpRatesNorm == 0, axis=0)
+    zero_rows_mask = np.all(ExpRatesNorm == 0, axis=1)
+
+    # Indices of zero-columns
+    zero_col_indices = np.where(zero_cols_mask)[0]
+    print("Zero columns at indices:", zero_col_indices)
+    # Print the indices of zero-rows
+    zero_row_indices = np.where(zero_rows_mask)[0]
+    print("Zero rows at indices:", zero_row_indices)
+
+    # Print the actual columns (as a submatrix)
+    print("Zero columns:", np.shape(ExpRatesNorm[:, zero_cols_mask]))
+    print("Zero rows:", np.shape(ExpRatesNorm[zero_rows_mask, :]))
+
+    # Print the actual rows
+    print("Length zero rows/columns:", len(zero_row_indices),  len(zero_col_indices))
+
     import numpy as np
-    # print(np.shape(ModelRates), np.shape(cfg.neural_data))
+    print("Shape of the Model and Experimental firing activity matrices")
+    print(np.shape(ModelRates), np.shape(cfg.neural_data))
 
     plt.figure()
-    plt.imshow(ModelRates.T, aspect='auto', cmap='hot')
+    plt.imshow(ModelRates.T, aspect='auto', cmap='viridis')
     plt.colorbar()
     filename = cfg.saveFolder + "/" + cfg.simLabel + f'_ModelRates.png'
     plt.savefig(filename)
     plt.close()
 
     plt.figure()
-    plt.imshow(cfg.neural_data.T, aspect='auto', cmap='hot')
+    plt.imshow(cfg.neural_data.T, aspect='auto', cmap='viridis')
     plt.colorbar()
     filename = cfg.saveFolder + "/" + cfg.simLabel + f'_ExpRates.png'
     plt.savefig(filename)
@@ -80,7 +115,7 @@ if sim.rank == 0:
     # Load CEBRA MODEL
     ###
     import cebra
-    model_label = 'joy' # 'joy' 'stg' 'stg-joy' 'time' 
+    model_label = 'stg-joy' # 'joy' 'stg' 'stg-joy' 'time' 
     file_path = Path('src_CEBRA/CEBRA_data/230517_2759_1606VAL/decode_rs_iter100000_ndim3_conddelta/models/') / f'model_{model_label}.pt'
     model = cebra.CEBRA.load(file_path)
     print(f"Loaded model from {file_path}")
@@ -98,7 +133,7 @@ if sim.rank == 0:
     fig, axs = plt.subplots(1, numplots, figsize=(5 * numplots, 6), subplot_kw={'projection': '3d'})
 
     embedding_exp = model.transform(cfg.neural_data)
-    ax1 = cebra.plot_embedding(embedding_exp, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap)
+    ax1 = cebra.plot_embedding(embedding_exp, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap, alpha=1.0)
     filename = cfg.saveFolder + "/" + cfg.simLabel + f'_cebra_embedding_exp_{model_label}.png'
     fig = ax1.get_figure()
     fig.savefig(filename)
@@ -106,7 +141,7 @@ if sim.rank == 0:
     plt.close(fig)
 
     embedding_model = model.transform(ModelRates)
-    ax2 = cebra.plot_embedding(embedding_model, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap)
+    ax2 = cebra.plot_embedding(embedding_model, embedding_labels=cfg.stageId, ax=axs, title="Embedding", cmap=cmap, alpha=1.0)
     filename = cfg.saveFolder + "/" + cfg.simLabel + f'_cebra_embedding_model_{model_label}.png'
     fig = ax2.get_figure()
     fig.savefig(filename)
@@ -120,5 +155,11 @@ if sim.rank == 0:
     results['loss'] = 1 - r_2
     out_json = json.dumps({**inputs, **results})
 
-    # print(out_json)
+    print(out_json)
     sim.send(out_json)
+
+# import cebra
+# model_label = 'joy' # 'joy' 'stg' 'stg-joy' 'time' 
+# file_path = Path('src_CEBRA/CEBRA_data/230517_2759_1606VAL/decode_rs_iter100000_ndim3_conddelta/models/') / f'model_{model_label}.pt'
+# model = cebra.CEBRA.load(file_path)
+# print(f"Loaded model from {file_path}")

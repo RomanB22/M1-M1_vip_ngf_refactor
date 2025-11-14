@@ -35,7 +35,7 @@ if cfg.addInVivoThalamus:
      cfg.preTone = 1500 
      cfg.postTone = 1500
 cfg.duration = cfg.preTone + cfg.postTone
-cfg.dt = 0.025
+cfg.dt = 1.0 #0.025
 cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'cell': 1234} 
 cfg.hParams = {'celsius': 34, 'v_init': -80}  
 cfg.verbose = False
@@ -73,7 +73,7 @@ allpops = ['NGF1', 'IT2', 'PV2', 'SOM2', 'VIP2', 'NGF2',
            'IT5B', 'PT5B', 'PV5B', 'SOM5B','VIP5B','NGF5B',
            'IT6','CT6','PV6','SOM6','VIP6','NGF6']
 recpops = ['PV2', 'PV4', 'PV5A', 'PV5B', 'PV6', 'PT5B']
-cfg.cellsrec = 5
+cfg.cellsrec = 1
 if cfg.cellsrec == 0:  cfg.recordCells = ['all'] # record all cells
 elif cfg.cellsrec == 1: cfg.recordCells = [(pop,0) for pop in allpops] # record one cell of each pop
 elif cfg.cellsrec == 2: cfg.recordCells = [('IT2',10), ('IT5A',10), ('PT5B',10), ('PV5B',10), ('SOM5B',10)] # record selected cells
@@ -101,6 +101,9 @@ cfg.saveCellSecs = False
 cfg.saveCellConns = 0
 cfg.compactConnFormat = 0
 
+import os
+os.makedirs(cfg.saveFolder, exist_ok=True)
+
 #------------------------------------------------------------------------------
 # Analysis and plotting 
 #------------------------------------------------------------------------------
@@ -115,7 +118,7 @@ cfg.analysis['plotRaster'] = {'include': allpops, 'orderBy': ['pop', 'y'], 'time
 
 cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}, 
                     'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
-                    'V_dend_5': {'sec':'dend_5', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
+                    'V_dend_1': {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
@@ -123,12 +126,14 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 # Cells
 #------------------------------------------------------------------------------
-cfg.pt5b_variant = "standard"        # "tim" or "standard"
+cfg.pt5b_variant = "tim"        # "tim" or "standard"
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
 cfg.loadmutantParams = False
 cfg.variant = 'WT' # L1666F, E1211K, D195G, R853Q, K1422E, M1879T, WT
+
+if cfg.loadmutantParams: ValueError("cfg.loadmutantParams is not implemented yet")
 
 # --- toggles ---
 cfg.heterozygous = False   # zero out na12mut

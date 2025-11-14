@@ -14,7 +14,7 @@ cwd = str(Path.cwd())
 dispatcher, submit = generate_constructors('slurm', 'sfs')
 
 num_individuals = 20
-num_generations = 50
+num_generations = 100
 
 PercentageChange = 0.2
 minChg = (1-PercentageChange)
@@ -37,9 +37,12 @@ params = {
     for col in include
 }
 
+params['dt'] = [0.1, 0.1]
+params['recordStep'] = [0.1, 0.1]
+
 param_space_samplers = ['float' for _ in range(len(params))]  # specify float sampling for all parameters
 results = cmaes_search(
-    study_label='cmaes_batch_umap',
+    study_label='CebCm',
     param_space=params,
     param_space_samplers=param_space_samplers,  # specify integer sampling for both parameters
     algo_kwargs={'seed': 42}, # for reproducibility
@@ -52,10 +55,10 @@ results = cmaes_search(
     submit_kwargs=slurm_args,
     interval=10,
     project_path=cwd,
-    output_path=expand_path('./optimization/cmaes', create_dirs=True),
+    output_path=expand_path('./optimization/cmaes_CEBRA_3', create_dirs=True),
 )
 
-with open('./optimization/cmaes/cmaes_results.txt', 'w') as f:
+with open('./optimization/cmaes_CEBRA_3/cmaes_results.txt', 'w') as f:
     f.write(str(results))
 
 print(results)

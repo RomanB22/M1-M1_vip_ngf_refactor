@@ -124,7 +124,7 @@ def addLongConnections(cwd, netParams, cfg):
 
 def SampleSpikes(spikeTimesList, cfg, preTone=-2., postTone=2, baselineEnd=-0.5, skipEmpty=False):
     # Guard rails for movement/post windows when not simulating baseline
-    if (cfg.SimulateBaseline == False and cfg.preTone > 2000.):
+    if (cfg.SimulateBaseline == False and cfg.preTone > 3000.):
         raise ValueError("cfg.preTone cannot be larger than 2000 ms")
     if (cfg.SimulateBaseline == False and cfg.postTone > 2000.):
         raise ValueError("cfg.postTone cannot be larger than 2000 ms")
@@ -193,7 +193,25 @@ def SampleSpikes(spikeTimesList, cfg, preTone=-2., postTone=2, baselineEnd=-0.5,
             return [t for t in out if 0 <= t <= cfg.duration]
 
         baselineSpks = [mirror_then_original(trial) for trial in baselineSpks]
+    else:
+        # Determine baseline span as above; mirror into [0, cfg.transient]
+        sampledSpikesSpan = int(round(1000 * (baselineEnd - preTone)))
+        if sampledSpikesSpan <= 0 or cfg.transient <= 0:
+            # No transient to fill or invalid span -> return as-is (no other changes)
+            return baselineSpks, movementAndPostSpks
 
+        def mirror_into_transient(lst):
+            # base times limited to one baseline copy [0, span)
+            base = [t for t in lst if 0 <= t < sampledSpikesSpan]
+            # mirror around the right edge: t' = span - t, keep within (0, span]
+            mirrored = [sampledSpikesSpan - t for t in base]
+            mirrored = [t for t in mirrored if 0 < t <= sampledSpikesSpan]
+            # scale/clip to fit strictly within [0, cfg.transient]
+            # (no scaling needed if we just clip; "mirror at the beginning" implies we only place within transient)
+            out = sorted(set(mirrored))
+            return [t for t in out if 0 <= t <= cfg.transient]
+
+        baselineSpks = [mirror_into_transient(trial) for trial in baselineSpks]        
     # Note: movementAndPostSpks unchanged
     return baselineSpks, movementAndPostSpks
 
@@ -430,6 +448,8 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
     import random
     random.seed(cfg.seeds['m1_sampling'])
     
+    spike_ids = np.array(sim.simData['spkid'].to_python())
+    spike_times = np.array(sim.simData['spkt'].to_python())
     # --- Helper to map yNorm -> layer ---
     def get_layer(y_norm):
         for layer, (ymin, ymax) in cfg.layer.items():
@@ -437,26 +457,57 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
                 return layer
         return None
     
-    # --- Collect cells by layer ---
+    # --- Collect GIDs by layer (keep identical structure to original) ---
     cells_by_layer = {layer: [] for layer in cfg.layer.keys()}
-    for cell in sim.net.allCells:
-        y_norm = cell.tags.get('ynorm')
-        if y_norm is None:
+    for cell_dict in sim.net.allCells:
+        tags = cell_dict.get('tags', {})
+        y_norm = tags.get('ynorm')
+        gid = cell_dict.get('gid')
+        if y_norm is None or gid is None:
             continue
         layer = get_layer(y_norm)
         if layer:
-            cells_by_layer[layer].append(cell.gid)
+            cells_by_layer[layer].append(gid)
 
-    # --- Sample from each layer ---
+    # GIDs that fire at least once after cfg.transient
+    firing_after_transient = {
+        gid for gid, t in zip(spike_ids, spike_times) if t > cfg.transient
+    }
+
+    print(firing_after_transient)
+
+    # Also track firing GIDs per layer (only those firing after transient)
+    firing_by_layer = {
+        lyr: [g for g in gids if g in firing_after_transient]
+        for lyr, gids in cells_by_layer.items()
+    }
+
+    # --- Sample from each layer (prefer firing; fill with non-firing if needed) ---
     sampled_cells = {}
     for layer, n in cfg.numSampledCellsPerLayer.items():
-        if layer in cells_by_layer:
-            sampled_cells[layer] = random.sample(
-                cells_by_layer[layer],
-                min(n, len(cells_by_layer[layer]))
-            )
-        else:
+        pool_all = cells_by_layer.get(layer, [])
+        pool_fire = firing_by_layer.get(layer, [])
+
+        if not pool_all:
             sampled_cells[layer] = []
+            continue
+
+        # Never exceed available total cells in the layer (keeps original semantics)
+        need = min(n, len(pool_all))
+
+        if len(pool_fire) >= need:
+            sampled = random.sample(pool_fire, need)
+        else:
+            picked = list(pool_fire)  # take all firing
+            remaining_needed = need - len(picked)
+            if remaining_needed > 0:
+                non_fire_pool = [g for g in pool_all if g not in pool_fire]
+                extra = random.sample(non_fire_pool, remaining_needed)
+                picked.extend(extra)
+            random.shuffle(picked)  # avoid always putting firing first
+            sampled = picked
+
+        sampled_cells[layer] = sampled
 
     if plot:
         import matplotlib.pyplot as plt
@@ -528,12 +579,14 @@ def binnedRaster(simData, cfg):
 
     # Start analysis from transient time, end at original duration
     start_time = transient_sec
-    end_time = cfg.duration / 1000. + bin_time*fs/1000.
-    Raster = bin_spikes(spike_times, bin_time*fs/1000., start_time, end_time).T
-    neural_data_smooth = smoothen_spikes(Raster, kernel_size=5)
+    end_time = cfg.duration / 1000. + bin_time/1000.
+    # Raster = bin_spikes(spike_times, bin_time/1000., start_time, end_time)
+    Raster = bin_spikes(spike_times, bin_time/1000., start_time, end_time).T
+    neural_data_smooth = smoothen_spikes(Raster, kernel_size=25)
 
     # plot_data(neural_data, neural_data_smooth, all_aux)
     Raster = neural_data_smooth
+    # Raster = neural_data_smooth.T
     # Convert to rate
     Raster /= bin_time
     return Raster
