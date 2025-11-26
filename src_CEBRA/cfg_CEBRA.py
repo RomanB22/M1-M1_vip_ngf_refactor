@@ -77,7 +77,12 @@ maskTrial = np.array(trial_idx) == cfg.selected_trial
 
 cfg.dt = 0.025 # For GPU increase the dt to not get precision errors
 cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
+cfg.diversity = True
+cfg.percentage = 0.05  # percentage of variation in somatic passive properties in the populations
+
+
 cfg.recordStep = cfg.dt
+
 
 transientBins = int(cfg.transientExp/cebraParams['dt']) # number of bins to skip as transient
 
@@ -275,6 +280,7 @@ if cfg.blockNa:
             "only_if_present": {"mech": "nax"},
         },
     ]
+
 
 cfg.drugTreatment = False
 cfg.verbose_drug_changes = False

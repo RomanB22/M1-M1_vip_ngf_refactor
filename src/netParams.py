@@ -66,10 +66,13 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 ## Load cell rules previously saved using netpyne format
 cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
     'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
+# I always need to load it since it throws an error with the other neuron models otherwise
 if ['PT5B_full'] not in cellParamLabels and cfg.pt5b_variant == "tim":
     cellParamLabels += ['PT5B_full']
-loadCellParams = cellParamLabels
-saveCellParams = False #True
+# loadCellParams = []#cellParamLabels
+saveCellParams = False
+
+# cellParamLabels = []
 
 from pathlib import Path
 import yaml
@@ -133,6 +136,10 @@ add_cells_via_import(netParams, cells, ctx)
 for lbl, r in netParams.cellParams.items():
     defs.strip_range_like_globals(r)
 
+# netParams.saveCellParamsRule(
+#     label="PT5B_full",
+#     fileName=str(PROJECT_ROOT / "cells" / "Na12HH16HH_TF_orig.json"),
+# )
 
 from m1_model.utils.mutations import Mutation, apply_mutations
 
@@ -152,7 +159,10 @@ if getattr(cfg, "mutations_enabled", True):
 # print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12']['Ra'])
 # print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12mut']['Ra'])
 # # [print(i, netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12'][i]) for i in netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12'] ]
-# # print(netParams.cellParams['PT5B_full']['secs']['axon_0']['geom'])
+# print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['Ih'])
+# print(netParams.cellParams['PV_reduced']['secs']['soma'])
+# # # print(netParams.cellParams['PT5B_full']['secs']['axon_0']['mechs']['na12mut']['gbar'])
+# # # # print(netParams.cellParams.keys())
 # quit()
 
 if cfg.drugTreatment:
@@ -167,6 +177,12 @@ if cfg.drugTreatment:
     if getattr(cfg, "verbose_drug_changes", False):
         for line in changes_intr + changes_syn:
             print("[DRUG]", line)
+
+if cfg.diversity:
+    for cellType in netParams.cellParams.keys():
+        for param in netParams.cellParams[cellType]['secs']['soma']['mechs']['pas']:
+            value = netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param]
+            netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param] = f'{value}*normal(1, {cfg.percentage})'
 
 #------------------------------------------------------------------------------
 # Population parameters

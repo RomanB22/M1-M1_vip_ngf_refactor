@@ -469,10 +469,22 @@ def sampleNeuronsFromModel(sim, cfg, plot=False):
         if layer:
             cells_by_layer[layer].append(gid)
 
+    from collections import Counter
+
+    # Count spikes after transient
+    counts = Counter(gid for gid, t in zip(spike_ids, spike_times) if t > cfg.transient)
+
+    # Duration after transient
+    duration = (cfg.duration - cfg.transient) / 1000.0  # convert to seconds
+
+    # Cells firing > 1 Hz
+    cells_above_1hz = {gid for gid, n in counts.items() if n / duration > 1}
+    firing_after_transient = cells_above_1hz
+
     # GIDs that fire at least once after cfg.transient
-    firing_after_transient = {
-        gid for gid, t in zip(spike_ids, spike_times) if t > cfg.transient
-    }
+    # firing_after_transient = {
+    #     gid for gid, t in zip(spike_ids, spike_times) if t > cfg.transient
+    # }
 
     print(firing_after_transient)
 

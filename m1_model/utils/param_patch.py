@@ -101,29 +101,3 @@ def _get_params_cached(path: str) -> Dict[str, float]:
         _PARAM_CACHE[path] = params
         _PARAM_CACHE_MTIME[path] = mtime
     return _PARAM_CACHE[path]
-
-
-def apply_na_paramfile_to_rule(rule: Mapping[str, Any],
-                               param_path: str,
-                               target_mechs: Iterable[str] = ("na12","na12mut","na16","na16mut")) -> int:
-    """
-    Read the (JSON) param file and assign any matching keys into the listed Na mechs.
-    Returns the number of assignments made.
-    """
-    params = _get_params_cached(param_path)
-
-    n_changes = 0
-    for sec in rule.get("secs", {}).values():
-        mechs = sec.get("mechs", {})
-        for mname in target_mechs:
-            m = mechs.get(mname)
-            if not isinstance(m, dict):
-                continue
-            for k, v in params.items():
-                if k in m:
-                    if k == "gbar" and isinstance(m[k], list):
-                        m[k] = [float(v)] * len(m[k])
-                    else:
-                        m[k] = float(v)
-                    n_changes += 1
-    return n_changes

@@ -27,6 +27,9 @@ cfg._batchtk_path_pointer = None
 # Run parameters
 #------------------------------------------------------------------------------
 
+cfg.diversity = True
+cfg.percentage = 0.05  # percentage of variation in somatic passive properties in the populations
+
 cfg.preTone = 1500
 cfg.postTone = 1500 # Movement part
 cfg.SimulateBaseline = True
@@ -35,7 +38,7 @@ if cfg.addInVivoThalamus:
      cfg.preTone = 1500 
      cfg.postTone = 1500
 cfg.duration = cfg.preTone + cfg.postTone
-cfg.dt = 1.0 #0.025
+cfg.dt = 0.025
 cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'cell': 1234} 
 cfg.hParams = {'celsius': 34, 'v_init': -80}  
 cfg.verbose = False
@@ -128,9 +131,9 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 cfg.pt5b_variant = "tim"        # "tim" or "standard"
 
-cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
+cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 0.3 # 0.3 for "standard", 1.0 for "tim"
 
-cfg.loadmutantParams = False
+cfg.loadmutantParams = False # MUTANT LOADING IS CHANGING SOMETHING
 cfg.variant = 'WT' # L1666F, E1211K, D195G, R853Q, K1422E, M1879T, WT
 
 if cfg.loadmutantParams: ValueError("cfg.loadmutantParams is not implemented yet")
@@ -239,6 +242,7 @@ cfg.cellmod =  {'IT2': 'HH_reduced',
 				'CT6': 'HH_reduced'}
 
 ihQuiet = 1.0 # Factor for ih gbar in PT cells at quiet state
+if cfg.pt5b_variant == "tim": ihQuiet = 0.5
 ihMovement = 0.25 # Factor for ih gbar in PT cells at movement state
 cfg.ihModel = 'migliore'  # ih model
 cfg.ihGbar = ihQuiet if cfg.SimulateBaseline else ihMovement # multiplicative factor for ih gbar in PT cells
@@ -280,7 +284,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
@@ -291,7 +295,7 @@ cfg.scale = 1.0
 cfg.sizeY = 1350.0
 cfg.sizeX = 300.0
 cfg.sizeZ = 300.0
-cfg.scaleDensity = 1.0 # 1.0
+cfg.scaleDensity = 1.0
 cfg.correctBorderThreshold = 150.0
 
 cfg.L5BrecurrentFactor = 1.0

@@ -25,6 +25,22 @@ sim.initialize(
     netParams = netParams)  				# create network object and set cfg and net params
 sim.net.createPops()               			# instantiate network populations
 sim.net.createCells()              			# instantiate network cells based on defined populations
+
+# print("Checking weightNorm vs nseg for all cells...")
+# for cell in sim.net.cells:
+#     for sec_name, sec in cell.secs.items():
+#         wn = sec.get('weightNorm', None)
+#         if wn is None:
+#             continue
+#         try:
+#             nseg = int(sec['hObj'].nseg)
+#         except Exception:
+#             continue
+#         if len(wn) != nseg:
+#             print(f"Cell GID {cell.gid}, sec {sec_name}: len(weightNorm)={len(wn)}, nseg={nseg}")
+# quit()
+
+
 sim.net.connectCells()            			# create connections between cells based on params
 sim.net.addStims() 							# add network stimulation
 sim.setupRecording()              			# setup variables to record for each cell (spikes, V traces, etc)

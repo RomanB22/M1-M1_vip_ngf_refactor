@@ -153,6 +153,12 @@ if getattr(cfg, "mutations_enabled", True):
 # # print(netParams.cellParams['PT5B_full']['secs']['axon_0']['geom'])
 # quit()
 
+if cfg.diversity:
+    for cellType in netParams.cellParams.keys():
+        for param in netParams.cellParams[cellType]['secs']['soma']['mechs']['pas']:
+            value = netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param]
+            netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param] = f'{value}*normal(1, {cfg.percentage})'
+
 if cfg.drugTreatment:
     from m1_model.utils.drug_treatments import apply_cell_mech_drugs, apply_syn_drugs
 

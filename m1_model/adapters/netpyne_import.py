@@ -58,6 +58,8 @@ def add_cells_via_import(netParams, cells: Iterable[CellProvider], ctx) -> None:
                 if spec.kwargs:
                     kwargs.update(spec.kwargs)
 
+                # print(cell_rule['secs']['soma_0']['mechs']['Ih'])
+
                 cell_rule = netParams.importCellParams(**kwargs)
 
                 # Persist rule if requested
