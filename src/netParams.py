@@ -585,9 +585,19 @@ if cfg.addSubConn:
 report = defs.filter_by_enabled_cells_yaml(
     netParams,
     PROJECT_ROOT / "config" / "cells.yml",
-    verbose=True
+    verbose=False
 )
 
+# filedata = {str(i): netParams.connParams[i] for i in netParams.connParams if (i.startswith(tuple(inhTypes)) or i.startswith(tuple(excTypes)))}
+filedata = {str(i): netParams.connParams[i] for i in netParams.connParams}
+filedata['defaultDelay'] = netParams.defaultDelay
+filedata['propVelocity'] = netParams.propVelocity
+filedata['probLambda'] = netParams.probLambda
+filedata['synMechParams'] = netParams.synMechParams
+import json
+with open('connectionRules.json', 'w') as fp:
+    json.dump(filedata, fp, indent=4)
+quit()
 #------------------------------------------------------------------------------
 # Description
 #------------------------------------------------------------------------------
