@@ -149,6 +149,13 @@ def parse_cfg_mutations(cfg):
         out.append(Mutation(**m))  # dataclass validates keys
     return out
 
+# Apply external Ca concentration to all sections that define ca ions
+for cell_name, rule in netParams.cellParams.items():
+    for sec_name, sec_def in rule.get('secs', {}).items():
+        ions = sec_def.get('ions', {})
+        if 'ca' in ions:
+            ions['ca']['o'] = cfg.cao_secs
+
 if getattr(cfg, "mutations_enabled", True):
     muts = parse_cfg_mutations(cfg)
     report = apply_mutations(netParams, muts, dry_run=getattr(cfg, "mutations_dry_run", False))
@@ -251,7 +258,6 @@ netParams.synMechParams['GABAB'] = {'mod':'MyExp2SynBB', 'tau1': 3.5, 'tau2': 26
 netParams.synMechParams['GABAA'] = {'mod':'MyExp2SynBB', 'tau1': 0.07, 'tau2': 18.2, 'e': -80}
 netParams.synMechParams['GABAA_VIP'] = {'mod':'MyExp2SynBB', 'tau1': 0.3, 'tau2': 6.4, 'e': -80}  # Pi et al 2013
 netParams.synMechParams['GABAASlow'] = {'mod': 'MyExp2SynBB','tau1': 2, 'tau2': 100, 'e': -80}
-netParams.synMechParams['GABAASlowSlow'] = {'mod': 'MyExp2SynBB', 'tau1': 200, 'tau2': 400, 'e': -80}
 
 ESynMech = ['AMPA', 'NMDA']
 SOMESynMech = ['GABAASlow','GABAB']
