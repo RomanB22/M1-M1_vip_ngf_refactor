@@ -131,7 +131,7 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 cfg.cao_secs = 1.2
 
-cfg.pt5b_variant = "tim"        # "tim" or "standard"
+cfg.pt5b_variant = "standard"        # "tim" or "standard"
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 0.3 # 0.3 for "standard", 1.0 for "tim"
 
