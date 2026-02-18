@@ -26,11 +26,11 @@ cfg._batchtk_path_pointer = None
 #------------------------------------------------------------------------------
 # Run parameters
 #------------------------------------------------------------------------------
-cfg.diversity = True
+cfg.diversity = False
 cfg.percentage = 0.2  # percentage of variation in somatic passive properties in the populations
 
-cfg.preTone = 3000
-cfg.postTone = 1500 # Movement part
+cfg.preTone = 1000
+cfg.postTone = 1000 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
 if bool(cfg.SimulateBaseline) is True:
@@ -74,7 +74,7 @@ allpops = ['NGF1', 'IT2', 'PV2', 'SOM2', 'VIP2', 'NGF2',
            'IT5A', 'PV5A', 'SOM5A','VIP5A','NGF5A',
            'IT5B', 'PT5B', 'PV5B', 'SOM5B','VIP5B','NGF5B',
            'IT6','CT6','PV6','SOM6','VIP6','NGF6']
-# allpops = ['TVL']
+allpops = ['PT5B']
 recpops = ['PV2', 'PV4', 'PV5A', 'PV5B', 'PV6', 'PT5B']
 cfg.cellsrec = 1
 if cfg.cellsrec == 0:  cfg.recordCells = ['all'] # record all cells
@@ -131,7 +131,7 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 cfg.cao_secs = 1.2
 
-cfg.pt5b_variant = "standard"        # "tim" or "standard"
+cfg.pt5b_variant = "tim"        # "tim" or "standard"
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 0.3 # 0.3 for "standard", 1.0 for "tim"
 
@@ -341,7 +341,7 @@ cfg.IFullGain = 1.0  # deprecated
 #------------------------------------------------------------------------------
 # Subcellular distribution
 #------------------------------------------------------------------------------
-cfg.addSubConn = 1
+cfg.addSubConn = True
 #------------------------------------------------------------------------------
 # Long range inputs
 #------------------------------------------------------------------------------

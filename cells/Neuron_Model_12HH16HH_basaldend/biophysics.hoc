@@ -1,0 +1,199 @@
+/*
+ * Refined Biophysics based on biophysics_OG.hoc
+ * Somatic/Axonal values preserved from OG.
+ * Basal/Apical non-Na values set here.
+ * Sodium (Na) initialized to 0 for Python control.
+ */
+
+begintemplate cADpyr232_biophys
+public biophys, distribute
+
+proc distribute(){local x localobj sl
+        strdef stmp,distfunc,mech
+        sl = $o1
+        mech = $s2
+        distfunc = $s3
+        sprint(distfunc,"%%s %s(%%f) = %s",mech, distfunc)
+        forsec sl for(x) {
+            sprint(stmp,distfunc,secname(),x,distance(x))
+            execute(stmp)
+        }
+    }
+
+proc biophys() { local x, d
+	// --- 1. INSERT MECHANISMS ---
+	forsec $o1.all { insert pas }
+	
+	forsec $o1.basal {
+        insert Ih 
+		insert na12 
+		insert na12mut 
+		insert na16 
+		insert na16mut
+        insert SKv3_1 
+		insert Ca_LVAst 
+		insert Ca_HVA 
+		insert SK_E2 
+		insert CaDynamics_E2
+    }
+
+    forsec $o1.apical {
+        insert Im 
+		insert SKv3_1 
+		insert Ih
+		insert na12 
+		insert na12mut 
+		insert na16
+		insert na16mut
+        insert Ca_LVAst 
+		insert Ca_HVA
+		insert Ca_Ltype 
+		insert SK_E2 
+		insert CaDynamics_E2
+    }
+
+	forsec $o1.somatic {
+		insert Ca_HVA
+		insert SKv3_1
+		insert SK_E2
+		insert Ca_LVAst
+		insert Ih
+		insert CaDynamics_E2
+		insert na12
+		insert na12mut
+		insert na16
+		insert na16mut
+	}
+
+	forsec $o1.axonal {
+		insert Ca_HVA
+		insert SKv3_1
+		insert SK_E2
+		insert CaDynamics_E2
+		insert K_Pst
+		insert K_Tst
+		insert Ca_LVAst
+		insert na12
+		insert na12mut
+		insert na16
+		insert na16mut
+	}
+
+	// --- 2. GLOBAL SETTINGS ---
+	forsec $o1.all { 
+		Ra = 80
+		cm = 1
+		g_pas = 3e-5
+		e_pas = -75 
+	}
+	forsec $o1.apical { 
+		ena = 50
+		ek = -85
+		cm = 2 
+	}
+
+	forsec $o1.axonal { 
+		ena = 50
+		ek = -85 
+	}
+
+	forsec $o1.basal { 
+		cm = 2 
+	}
+	
+	forsec $o1.somatic { 
+		ena = 50
+		ek = -85 
+	}
+
+	// --- 3. SODIUM INITIALIZATION (Set to 0 for Python control) ---
+	forsec $o1.all {
+        if (ismembrane("na12")) { gbar_na12 = 0 }
+        if (ismembrane("na12mut")) { gbar_na12mut = 0 }
+        if (ismembrane("na16")) { gbar_na16 = 0 }
+        if (ismembrane("na16mut")) { gbar_na16mut = 0 }
+    }
+
+	// --- 4. BASAL DISTRIBUTIONS ---
+    distribute($o1.basal,"gamma_CaDynamics_E2","0.000609")
+    distribute($o1.basal,"decay_CaDynamics_E2","210.485284")
+    distribute($o1.basal,"gCa_LVAstbar_Ca_LVAst","0.000333")
+    distribute($o1.basal,"gCa_HVAbar_Ca_HVA","0.0001")
+    distribute($o1.basal,"gSK_E2bar_SK_E2","0.008407")
+	distribute($o1.basal,"gIhbar_Ih","0.000080")
+	distribute($o1.basal,"gSKv3_1bar_SKv3_1","0.004226")
+
+	// --- 5. APICAL DISTRIBUTIONS & HOT ZONE ---
+	distribute($o1.apical,"gamma_CaDynamics_E2","0.000609")
+	distribute($o1.apical,"decay_CaDynamics_E2","210.485284")
+
+	// Apical channel baselines tuned to reproduce previous WT measurements
+	distribute($o1.apical,"gSKv3_1bar_SKv3_1","0.000038224879")
+	distribute($o1.apical,"gIhbar_Ih","(-0.869600 + 2.087000*exp((%g-0.000000)*0.003100))*0.00055")
+	distribute($o1.apical,"gImbar_Im","1.43e-05")
+
+	// Explicit Ca time-constant factors used in the working WT configuration
+	distribute($o1.apical,"hTauFac_Ca_HVA","0.05")
+	distribute($o1.apical,"hTauFac_Ca_Ltype","22.0")
+	// L-type baseline (proximal) — hotspot override below sets distal value
+	distribute($o1.apical,"gCa_Ltypebar_Ca_Ltype","1e-05")
+	
+	// Apply Base Apical and 5x Hot Zone Multiplier
+	forsec $o1.apical {
+        for (x, 0) {
+            d = distance(x)
+            if (d > 500) {
+                gCa_HVAbar_Ca_HVA(x) = 0.000375
+                gCa_LVAstbar_Ca_LVAst(x) = 0.00599
+                gSK_E2bar_SK_E2(x) = 0.00168
+                gCa_Ltypebar_Ca_Ltype(x) = 2.5e-05
+
+            } else {
+                // Lower values for proximal apical
+                gCa_HVAbar_Ca_HVA(x) = 0.0001
+                gCa_LVAstbar_Ca_LVAst(x) = 0.000333
+                gSK_E2bar_SK_E2(x) = 0.008407
+				gCa_Ltypebar_Ca_Ltype(x) = 1e-05
+
+            }
+        }
+    }
+
+	// --- 6. ORIGINAL AXONAL DISTRIBUTIONS ---
+	distribute($o1.axonal,"gK_Tstbar_K_Tst","0.089259")
+	distribute($o1.axonal,"gamma_CaDynamics_E2","0.002910")
+	distribute($o1.axonal,"gSK_E2bar_SK_E2","0.007104")
+	distribute($o1.axonal,"gCa_HVAbar_Ca_HVA","0.000990")
+	distribute($o1.axonal,"gK_Pstbar_K_Pst","0.973538")
+	distribute($o1.axonal,"gSKv3_1bar_SKv3_1","1.021945")
+	distribute($o1.axonal,"decay_CaDynamics_E2","287.198731")
+	distribute($o1.axonal,"gCa_LVAstbar_Ca_LVAst","0.008752")
+
+	// --- 7. ORIGINAL SOMATIC DISTRIBUTIONS ---
+	distribute($o1.somatic,"gamma_CaDynamics_E2","0.000609")
+	distribute($o1.somatic,"gSKv3_1bar_SKv3_1","0.303472")
+	distribute($o1.somatic,"gSK_E2bar_SK_E2","0.008407")
+	distribute($o1.somatic,"gCa_HVAbar_Ca_HVA","0.000994")
+	distribute($o1.somatic,"gIhbar_Ih","0.000080")
+	distribute($o1.somatic,"decay_CaDynamics_E2","210.485284")
+	distribute($o1.somatic,"gCa_LVAstbar_Ca_LVAst","0.000333")
+	
+	// Final Overrides from biophysics_OG.hoc tail
+	forsec $o1.all { 
+		g_pas = 7.120456e-06 
+		e_pas = -100 
+	}
+	
+	forsec $o1.axonal {
+		gK_Tstbar_K_Tst = 7.057598e-01
+		gK_Pstbar_K_Pst = 2.995607e+00
+		gSKv3_1bar_SKv3_1 = 1.795864e+00 
+		gCa_LVAstbar_Ca_LVAst = 1.376286e-03
+		gCa_HVAbar_Ca_HVA = 1.181439e-04
+	}
+	forsec $o1.somatic {
+		gSKv3_1bar_SKv3_1 = 8.396194e-02
+		gCa_HVAbar_Ca_HVA = 3.124468e-04
+	}
+}
+endtemplate cADpyr232_biophys

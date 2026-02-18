@@ -67,7 +67,7 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
     'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
 # I always need to load it since it throws an error with the other neuron models otherwise
-if ['PT5B_full'] not in cellParamLabels and cfg.pt5b_variant == "tim":
+if 'PT5B_full' not in cellParamLabels and cfg.pt5b_variant == "tim":
     cellParamLabels += ['PT5B_full']
 # loadCellParams = []#cellParamLabels
 saveCellParams = False
@@ -102,11 +102,14 @@ PROJECT_ROOT = MODULE_DIR.parent
 
 def resolve_load_labels(project_root: Path, labels):
     cells_dir = project_root / "cells"
-    # Load only those that have a corresponding PKL on disk
-    return {
-        lbl for lbl in labels
-        if (cells_dir / f"{lbl}_cellParams.pkl").exists()
-    }
+    selected = set()
+    for lbl in labels:
+        candidates = [cells_dir / f"{lbl}_cellParams.pkl"]
+        if lbl == "PT5B_full" and getattr(cfg, "pt5b_variant", "standard") == "tim":
+            candidates = [cells_dir / "PT5B_full_cellParams_Tim.pkl"] + candidates
+        if any(p.exists() for p in candidates):
+            selected.add(lbl)
+    return selected
 
 class Ctx:
     sim_dir = MODULE_DIR
