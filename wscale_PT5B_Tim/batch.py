@@ -1,11 +1,12 @@
 from netpyne.batchtools.search import search
 import numpy as np
 import json
+from cfg import cfg
 
-sections = list(json.load(open('Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json', 'r'))['secs'].keys())
+with open(cfg.cellParamsJson, 'r') as fptr:
+    sections = list(json.load(fptr)['secs'].keys())
 
-sections.remove('axon_0')
-sections.remove('axon_1')
+sections = [sec for sec in sections if sec not in ('axon_0', 'axon_1')]
 
 weights = list(np.arange(0.01, 0.2, 0.01)/100.0)
 # Create parameter grid for search

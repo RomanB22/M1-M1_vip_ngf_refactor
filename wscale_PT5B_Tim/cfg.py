@@ -10,6 +10,7 @@ cfg.verbose  = True           # Verbose output
     # config sec/weight
 cfg.sec    = 'soma'
 cfg.weight = 0.001
+cfg.cellParamsJson = 'Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json'
 
     # Hyperparameters
 cfg.hParams = {
@@ -34,4 +35,3 @@ cfg.cache_efficient = True
 
 
 # Initialize configuration
-

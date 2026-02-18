@@ -14,6 +14,8 @@ x86/
 
 batchData/
 Plots/
+wscale_PT5B_Tim/grid_batch/
+wscale_PT5B_Tim/ray/
 
 # PDFs
 *.pdf

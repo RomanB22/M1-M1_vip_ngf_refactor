@@ -2,7 +2,7 @@ from netpyne import specs, sim
 import json, pickle
 from cfg import cfg
 
-with open('Na12HH16HH_TF_May29th2025_NoWeightNorm.json', 'r') as fptr:
+with open(cfg.cellParamsJson, 'r') as fptr:
     cell_params = json.load(fptr) #, encoding='latin1')
 
 # DON'T ADD WEIGHT NORMALIZATION FOR CALCULATING THE WSCALE
@@ -40,8 +40,9 @@ def init_params(cell, syn, sec, loc, weight):
                                    'cellType': cell['conds']['cellType'],
                                    'numCells': 1}
     
-    del netParams.cellParams['CELL']['secs']['axon_0']['geom']['pt3d']
-    del netParams.cellParams['CELL']['secs']['axon_1']['geom']['pt3d']
+    for sec_name in ('axon_0', 'axon_1'):
+        geom = netParams.cellParams['CELL']['secs'].get(sec_name, {}).get('geom', {})
+        geom.pop('pt3d', None)
 
     netParams.synMechParams['SYN_0'] = syn[0]
     netParams.synMechParams['SYN_1'] = syn[1]
@@ -57,7 +58,7 @@ def init_params(cell, syn, sec, loc, weight):
         'conds'   : cell['conds'],
         'sec'     : sec,
         'loc'     : loc,
-        'synMech' : ['SYN_1', 'SYN_1'],
+        'synMech' : ['SYN_0', 'SYN_1'],
         'weight'  : weight,
         'delay'   : 1
     }
