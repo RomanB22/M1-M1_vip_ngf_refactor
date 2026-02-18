@@ -38,7 +38,7 @@ class PT5BFullTimFromPy(CellProvider):
         rule = netParams.cellParams[label]
 
         # rename soma to conform to netpyne standard
-        rule.renameCellParamsSec(label='PT5B_full', oldSec='soma_0', newSec='soma')
+        netParams.renameCellParamsSec(label='PT5B_full', oldSec='soma_0', newSec='soma')
     
         # set the spike generation location to the axon (default in NEURON is the soma)
         rule['secs']['axon_0']['spikeGenLoc'] = 0.5
@@ -187,12 +187,12 @@ class PT5BFullTimFromPy(CellProvider):
         # create lists useful to define location of synapses
         nonSpiny = ['apic_0', 'apic_1']  # TODO: Where this comes from?
 
-        rule.addCellParamsSecList(label='PT5B_full', secListName='perisom',
+        netParams.addCellParamsSecList(label='PT5B_full', secListName='perisom',
                                     somaDist=[0, 50])  # sections within 50 um of soma
-        rule.addCellParamsSecList(label='PT5B_full', secListName='below_soma',
+        netParams.addCellParamsSecList(label='PT5B_full', secListName='below_soma',
                                     somaDistY=[-600, 0])  # sections within 0-300 um of soma
-        rule['secLists']['alldend'] = [sec for sec in rule.secs if ('dend' in sec or 'apic' in sec)]  # basal+apical
-        rule['secLists']['apicdend'] = [sec for sec in rule.secs if ('apic' in sec)]  # apical
+        rule['secLists']['alldend'] = [sec for sec in rule['secs'] if ('dend' in sec or 'apic' in sec)]  # basal+apical
+        rule['secLists']['apicdend'] = [sec for sec in rule['secs'] if ('apic' in sec)]  # apical
         rule['secLists']['spiny'] = [sec for sec in rule['secLists']['alldend'] if sec not in nonSpiny]
 
         for sec in nonSpiny:  # N.B. apic_1 not in `perisom` . `apic_0` and `apic_114` are
@@ -222,18 +222,24 @@ class PT5BFullTimFromPy(CellProvider):
                             g = mechs[mname]["gbar"]
                             mechs[mname]["gbar"] = [v * cfg.dendNa for v in g] if isinstance(g, list) else g * cfg.dendNa
 
-        # # 9) Weight normalization
-        # netParams.addCellParamsWeightNorm(
-        #     label,
-        #     str(self.project_root / "conn" / "PT5B_full_weightNorm_TIM.pkl"),
-        #     threshold=getattr(cfg, "weightNormThreshold", None),
-        # )
+        # 9) Weight normalization
+        netParams.addCellParamsWeightNorm(
+            label,
+            str(self.project_root / "conn" / "PT5B_full_weightNorm_TIM.pkl"),
+            threshold=getattr(cfg, "weightNormThreshold", None),
+        )
 
         # if getattr(cfg, "saveCellParams", False):
         #     netParams.saveCellParamsRule(
         #         label=label,
         #         fileName=str(self.project_root / "cells" / "WeightNorm_Na12HH16HH_WT_11242025.json"),
         #     )
+
+        netParams.saveCellParamsRule(
+                label=label,
+                fileName=str(self.project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"),
+            )
+        quit()        
 
     # ------------------------------ ImportSpec --------------------------------
 
