@@ -160,7 +160,7 @@ def SampleSpikes(spikeTimesList, cfg, preTone=-2., postTone=2, baselineEnd=-0.5,
     movementAndPostSpks = [list(i) for i in movementAndPostSpks]
 
     # --- New behavior for baseline simulation: mirror + original, exactly two copies ---
-    if cfg.SimulateBaseline is True:
+    if bool(cfg.SimulateBaseline):
         # one baseline copy span in ms
         sampledSpikesSpan = int(round(1000 * (baselineEnd - preTone)))
         if sampledSpikesSpan <= 0:
@@ -672,4 +672,3 @@ def plot_embedding(embedding, labels, cfg, colors=("blue", "red"), alpha=0.7, si
     filename = cfg.saveFolder + "/" + cfg.simLabel + "_umap.png"
     plt.savefig(filename)
     plt.close()
-
