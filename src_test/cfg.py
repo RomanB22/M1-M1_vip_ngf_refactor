@@ -360,7 +360,7 @@ TVLmovement = [0, 10]  # TVL firing rate (Hz)
 
 TVLRates = TVLquiet if cfg.SimulateBaseline else TVLmovement
 
-cfg.ratesLong = {'TPO': [0, 5], 'TVL': TVLRates, 'S1': [0, 5], 'S2': [0, 5], 'cM1': LongRangeQuiet, 'M2': LongRangeQuiet, 'OC': [0,5]}
+cfg.ratesLong = {'TPO': LongRangeQuiet, 'TVL': TVLRates, 'S1': LongRangeQuiet, 'S2': [0, 5], 'cM1': LongRangeQuiet, 'M2': LongRangeQuiet, 'OC': [0,5]}
 
 ## input pulses
 cfg.addPulses = False
