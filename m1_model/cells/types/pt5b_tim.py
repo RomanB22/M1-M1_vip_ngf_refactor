@@ -235,11 +235,11 @@ class PT5BFullTimFromPy(CellProvider):
         #         fileName=str(self.project_root / "cells" / "WeightNorm_Na12HH16HH_WT_11242025.json"),
         #     )
 
-        netParams.saveCellParamsRule(
-                label=label,
-                fileName=str(self.project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"),
-            )
-        quit()        
+        # netParams.saveCellParamsRule(
+        #         label=label,
+        #         fileName=str(self.project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"),
+        #     )
+        # quit()        
 
     # ------------------------------ ImportSpec --------------------------------
 
