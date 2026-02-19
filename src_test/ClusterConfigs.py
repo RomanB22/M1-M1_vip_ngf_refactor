@@ -11,9 +11,9 @@ module load openmpi/mlnx/gcc/64/4.1.5a1
          
 # Add project root and src to PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:$PWD
-export PYTHONPATH=$PYTHONPATH:$PWD/src
+export PYTHONPATH=$PYTHONPATH:$PWD/src_test
 
-time mpirun -n $SLURM_NTASKS nrniv -mpi -python src/init.py
+time mpirun -n $SLURM_NTASKS nrniv -mpi -python src_test/init.py
 """
 
 slurm_args = {

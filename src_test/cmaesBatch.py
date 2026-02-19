@@ -12,7 +12,7 @@ cwd = str(Path.cwd())
 #option for slurm run
 dispatcher, submit = generate_constructors('slurm', 'sfs')
 
-num_individuals = 10
+num_individuals = 15
 num_generations = 50
 
 PercentageChange = 0.5
