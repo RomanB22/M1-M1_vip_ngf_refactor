@@ -76,17 +76,22 @@ if sim.rank == 0:
 
     fitnessFuncArgs = {}
     pops = {}
+    available_pop_rates = set(results.keys())
     ## Exc pops
-    Epops = ['IT2', 'IT4', 'IT5A', 'IT5B', 'PT5B', 'IT6', 'CT6']
+    Epops = [pop for pop in ['IT2', 'IT4', 'IT5A', 'IT5B', 'PT5B', 'IT6', 'CT6'] if pop in available_pop_rates]
     Etune = {'target': 5, 'width': 5, 'min': 0.5}
     for pop in Epops:
         pops[pop] = Etune
     ## Inh pops
-    Ipops = ['NGF1', 'PV2', 'SOM2', 'VIP2', 'NGF2',
-             'PV4', 'SOM4', 'VIP4', 'NGF4',
-             'PV5A', 'SOM5A', 'VIP5A', 'NGF5A',
-             'PV5B', 'SOM5B', 'VIP5B', 'NGF5B',
-             'PV6', 'SOM6', 'VIP6', 'NGF6']
+    Ipops = [
+        pop for pop in [
+            'NGF1', 'PV2', 'SOM2', 'VIP2', 'NGF2',
+            'PV4', 'SOM4', 'VIP4', 'NGF4',
+            'PV5A', 'SOM5A', 'VIP5A', 'NGF5A',
+            'PV5B', 'SOM5B', 'VIP5B', 'NGF5B',
+            'PV6', 'SOM6', 'VIP6', 'NGF6'
+        ] if pop in available_pop_rates
+    ]
     Itune = {'target': 10, 'width': 15, 'min': 0.25}
     for pop in Ipops:
         pops[pop] = Itune

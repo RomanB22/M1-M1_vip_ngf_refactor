@@ -12,6 +12,12 @@ import pickle, json
 import defs
 from pathlib import Path
 from cfg import cfg
+from cell_selection import (
+    load_cells_config,
+    enabled_labels_from_config,
+    build_local_population_specs,
+    active_cell_types_from_pop_params,
+)
 
 
 cfg.update()
@@ -64,19 +70,7 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 
 #------------------------------------------------------------------------------
 ## Load cell rules previously saved using netpyne format
-cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
-    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
-# I always need to load it since it throws an error with the other neuron models otherwise
-# if 'PT5B_full' not in cellParamLabels and cfg.pt5b_variant == "tim":
-#     cellParamLabels += ['PT5B_full']
-# loadCellParams = []#cellParamLabels
-saveCellParams = False
-
-# cellParamLabels = []
-
-from pathlib import Path
-import yaml
-from m1_model.cells.registry import get_enabled_cells
+from m1_model.cells.registry import get_enabled_cells, build_registry
 from m1_model.adapters.netpyne_import import add_cells_via_import
 
 # --- robust module directory discovery (works whether __file__ is defined or not) ---
@@ -112,15 +106,22 @@ def resolve_load_labels(project_root: Path, labels):
     return selected
 
 class Ctx:
-    sim_dir = MODULE_DIR
-    project_root = PROJECT_ROOT
-    cfg = cfg
-    loadCellParams = resolve_load_labels(project_root, cellParamLabels)
+    def __init__(self, sim_dir: Path, project_root: Path, sim_cfg):
+        self.sim_dir = sim_dir
+        self.project_root = project_root
+        self.cfg = sim_cfg
+        self.loadCellParams = set()
 
 cfg_path = PROJECT_ROOT / "config" / "cells.yml"
-cell_cfg = yaml.safe_load(open(cfg_path)) if cfg_path.exists() else {}
+cell_cfg = getattr(cfg, "cellsConfig", None)
+if not isinstance(cell_cfg, dict):
+    cell_cfg = load_cells_config(cfg_path)
+enabled_labels = enabled_labels_from_config(cell_cfg)
 
-ctx = Ctx()
+ctx = Ctx(MODULE_DIR, PROJECT_ROOT, cfg)
+registry_labels = set(build_registry(ctx).keys())
+requested_labels = enabled_labels if enabled_labels else registry_labels
+ctx.loadCellParams = resolve_load_labels(PROJECT_ROOT, requested_labels)
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))
 
 add_cells_via_import(netParams, cells, ctx)
@@ -204,45 +205,7 @@ with open('./cells/cellDensity.pkl', 'rb') as fileObj: density = pickle.load(fil
 density = {k: [x * cfg.scaleDensity for x in v] for k,v in density.items()} # Scale densities 
 
 ## Local populations
-### Layer 1:
-netParams.popParams['NGF1']  =   {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['1'], 'density': density[('M1','nonVIP')][0]}
-
-### Layer 2/3:
-netParams.popParams['IT2']  =   {'cellModel': cfg.cellmod['IT2'],  'cellType': 'IT', 'ynormRange': cfg.layer['2'], 'density': density[('M1','E')][1]}
-netParams.popParams['SOM2'] =   {'cellModel': 'HH_reduced',         'cellType': 'SOM','ynormRange': cfg.layer['2'], 'density': density[('M1','SOM')][1]}
-netParams.popParams['PV2']  =   {'cellModel': 'HH_reduced',         'cellType': 'PV', 'ynormRange': cfg.layer['2'], 'density': density[('M1','PV')][1]}
-netParams.popParams['VIP2']  =  {'cellModel': 'HH_reduced',        'cellType': 'VIP', 'ynormRange': cfg.layer['2'], 'density': density[('M1','VIP')][1]}
-netParams.popParams['NGF2']  =  {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['2'], 'density': density[('M1','nonVIP')][1]}
-
-### Layer 4:
-netParams.popParams['IT4']  =   {'cellModel': cfg.cellmod['IT4'],  'cellType': 'IT', 'ynormRange': cfg.layer['4'], 'density': density[('M1','E')][2]}
-netParams.popParams['SOM4'] =   {'cellModel': 'HH_reduced',         'cellType': 'SOM','ynormRange': cfg.layer['4'], 'density': density[('M1','SOM')][2]}
-netParams.popParams['PV4']  =   {'cellModel': 'HH_reduced',         'cellType': 'PV', 'ynormRange': cfg.layer['4'], 'density': density[('M1','PV')][2]}
-netParams.popParams['VIP4']  =  {'cellModel': 'HH_reduced',        'cellType': 'VIP', 'ynormRange': cfg.layer['4'], 'density': density[('M1','VIP')][2]}
-netParams.popParams['NGF4']  =  {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['4'], 'density': density[('M1','nonVIP')][2]}
-
-### Layer 5A:
-netParams.popParams['IT5A'] =   {'cellModel': cfg.cellmod['IT5A'], 'cellType': 'IT', 'ynormRange': cfg.layer['5A'], 'density': density[('M1','E')][3]}
-netParams.popParams['SOM5A'] =  {'cellModel': 'HH_reduced',         'cellType': 'SOM','ynormRange': cfg.layer['5A'], 'density': density[('M1','SOM')][3]}
-netParams.popParams['PV5A']  =  {'cellModel': 'HH_reduced',         'cellType': 'PV', 'ynormRange': cfg.layer['5A'], 'density': density[('M1','PV')][3]}
-netParams.popParams['VIP5A']  = {'cellModel': 'HH_reduced',         'cellType': 'VIP', 'ynormRange': cfg.layer['5A'], 'density': density[('M1','VIP')][3]}
-netParams.popParams['NGF5A']  = {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['5A'], 'density': density[('M1','nonVIP')][3]}
-
-### Layer 5B:
-netParams.popParams['IT5B'] =   {'cellModel': cfg.cellmod['IT5B'], 'cellType': 'IT', 'ynormRange': cfg.layer['5B'], 'density': 0.5*density[('M1','E')][4]}
-netParams.popParams['PT5B'] =   {'cellModel': cfg.cellmod['PT5B'], 'cellType': 'PT', 'ynormRange': cfg.layer['5B'], 'density': 0.5*density[('M1','E')][4]}
-netParams.popParams['SOM5B'] =  {'cellModel': 'HH_reduced',         'cellType': 'SOM','ynormRange': cfg.layer['5B'], 'density': density[('M1','SOM')][4]}
-netParams.popParams['PV5B']  =  {'cellModel': 'HH_reduced',         'cellType': 'PV', 'ynormRange': cfg.layer['5B'], 'density': density[('M1','PV')][4]}
-netParams.popParams['VIP5B']  = {'cellModel': 'HH_reduced',        'cellType': 'VIP', 'ynormRange': cfg.layer['5B'], 'density': density[('M1','VIP')][4]}
-netParams.popParams['NGF5B']  = {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['5B'], 'density': density[('M1','nonVIP')][4]}
-
-### Layer 6:
-netParams.popParams['IT6']  =   {'cellModel': cfg.cellmod['IT6'],  'cellType': 'IT', 'ynormRange': cfg.layer['6'],  'density': 0.5*density[('M1','E')][5]}
-netParams.popParams['CT6']  =   {'cellModel': cfg.cellmod['CT6'],  'cellType': 'CT', 'ynormRange': cfg.layer['6'],  'density': 0.5*density[('M1','E')][5]}
-netParams.popParams['SOM6'] =   {'cellModel': 'HH_reduced',         'cellType': 'SOM','ynormRange': cfg.layer['6'],  'density': density[('M1','SOM')][5]}
-netParams.popParams['PV6']  =   {'cellModel': 'HH_reduced',         'cellType': 'PV', 'ynormRange': cfg.layer['6'],  'density': density[('M1','PV')][5]}
-netParams.popParams['VIP6']  =  {'cellModel': 'HH_reduced',        'cellType': 'VIP', 'ynormRange': cfg.layer['6'], 'density': density[('M1','VIP')][1]}
-netParams.popParams['NGF6']  =  {'cellModel': 'HH_reduced',         'cellType': 'NGF', 'ynormRange': cfg.layer['6'], 'density': density[('M1','nonVIP')][1]}
+netParams.popParams.update(build_local_population_specs(cfg, density, enabled_labels))
 
 if cfg.singleCellPops:
     for pop in netParams.popParams.values(): pop['numCells'] = 1
@@ -292,6 +255,9 @@ if cfg.addIClamp:
         params = getattr(cfg, key, None)
         [pop,sec,loc,start,dur,amp] = [params[s] for s in ['pop','sec','loc','start','dur','amp']]
 
+        if pop not in netParams.popParams:
+            continue
+
         #cfg.analysis['plotTraces']['include'].append((pop,0))  # record that pop
 
         # add stim source
@@ -312,6 +278,9 @@ if cfg.addNetStim:
         params = getattr(cfg, key, None)
         [pop, ynorm, sec, loc, synMech, synMechWeightFactor, start, interval, noise, number, weight, delay] = \
         [params[s] for s in ['pop', 'ynorm', 'sec', 'loc', 'synMech', 'synMechWeightFactor', 'start', 'interval', 'noise', 'number', 'weight', 'delay']] 
+
+        if pop not in netParams.popParams:
+            continue
 
         # cfg.analysis['plotTraces']['include'] = [(pop,0)]
 
@@ -340,6 +309,14 @@ if cfg.addNetStim:
 #------------------------------------------------------------------------------
 # Local connectivity parameters
 #------------------------------------------------------------------------------
+excTypes, inhTypes = active_cell_types_from_pop_params(netParams.popParams)
+active_models = {
+    spec.get('cellModel')
+    for spec in netParams.popParams.values()
+    if isinstance(spec, dict) and isinstance(spec.get('cellModel'), str)
+}
+cellModels = [model for model in ['HH_reduced', 'HH_full'] if model in active_models]
+
 with open('./conn/conn.pkl', 'rb') as fileObj: connData = pickle.load(fileObj)
 pmat = connData['pmat']
 wmat = connData['wmat']
@@ -408,7 +385,7 @@ if cfg.addConn and cfg.IEGain > 0.0:
         for ipostType, postType in enumerate(postTypes):
             for ipreBin, preBin in enumerate(bins[binsLabel]):
                 for ipostBin, postBin in enumerate(bins[binsLabel]):
-                    for cellModel in ['HH_reduced', 'HH_full']:
+                    for cellModel in cellModels:
                         ruleLabel = preType+'_'+postType+'_'+cellModel+'_'+str(ipreBin)+'_'+str(ipostBin)
                         netParams.connParams[ruleLabel] = {
                             'preConds': {'cellType': preType, 'ynorm': list(preBin)},
@@ -433,7 +410,7 @@ if cfg.addConn and cfg.IIGain > 0.0:
     for ipre, (preType, synMech) in enumerate(zip(preTypes, synMechs)):
         for ipost, postType in enumerate(postTypes):
             for iBin, bin in enumerate(bins[binsLabel]):
-                for cellModel in ['HH_reduced']:
+                for cellModel in [model for model in cellModels if model == 'HH_reduced']:
                     ruleLabel = preType+'_'+postType+'_'+str(iBin)
                     netParams.connParams[ruleLabel] = {
                         'preConds': {'cellType': preType, 'ynorm': bin},
@@ -455,7 +432,7 @@ if cfg.addLongConn:
     binsLong = connLongData['bins']
 
     longPops = ['TPO', 'TVL', 'S1', 'S2', 'cM1', 'M2', 'OC']
-    cellTypes = ['IT', 'PT', 'CT', 'PV', 'SOM', 'VIP', 'NGF']
+    cellTypes = excTypes + inhTypes
     EorI = ['exc', 'inh']
     syns = {'exc': ESynMech, 'inh': 'GABAA'}
     synFracs = {'exc': cfg.synWeightFractionEE, 'inh': [1.0]}
@@ -594,6 +571,7 @@ if cfg.addSubConn:
 report = defs.filter_by_enabled_cells_yaml(
     netParams,
     PROJECT_ROOT / "config" / "cells.yml",
+    cellmod=cfg.cellmod,
     verbose=False
 )
 
