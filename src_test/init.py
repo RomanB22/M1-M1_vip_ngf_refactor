@@ -100,6 +100,7 @@ if sim.rank == 0:
     fitnessFuncArgs['tranges'] = cfg.printPopAvgRates
 
     # rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
+    
     rateLoss = defs.rateFitnessFuncTranges(sim.simData, **fitnessFuncArgs)
 
     results['loss'] = rateLoss
