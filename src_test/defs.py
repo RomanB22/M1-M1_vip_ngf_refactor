@@ -14,10 +14,29 @@ from typing import List, Dict, Union
 from pathlib import Path
 from cell_selection import load_cells_config, enabled_labels_from_config, resolve_enabled_populations
 
+def rateFitnessFuncTranges(simData, **kwargs):
+        pops = kwargs['pops']
+        maxFitness = kwargs['maxFitness']
+        tranges = kwargs['tranges']
+
+        popFitnessAll = []
+
+        for trange in tranges:
+            popFitnessAll.append([min(np.exp(abs(v['target'] - simData['popRates'][k]['%d_%d'%(trange[0], trange[1])])/v['width']), maxFitness) 
+                if simData['popRates'][k]['%d_%d'%(trange[0], trange[1])] > v['min'] else maxFitness for k, v in pops.items()])
+        
+        popFitness = np.mean(np.array(popFitnessAll), axis=0)
+        
+        fitness = np.mean(popFitness)
+
+        popInfo = '; '.join(['%s rate=%.1f fit=%1.f' % (p, np.mean(list(simData['popRates'][p].values())), popFitness[i]) for i,p in enumerate(pops)])
+        print('  ' + popInfo)
+
+        return fitness
+
 #------------------------------------------------------------------------------
 ## Function to calculate the fitness according to required rate
 def rateFitnessFunc(simData, extraConds=False, **kwargs):
-    import numpy as np
     pops = kwargs['pops']
     maxFitness = kwargs['maxFitness']
     pop_rates = simData.get('popRates', {})

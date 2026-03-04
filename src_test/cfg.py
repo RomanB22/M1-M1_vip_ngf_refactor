@@ -63,8 +63,8 @@ cfg.progressBar = 0
 
 cfg.includeParamsLabel = False
 cfg.timeRanges = [cfg.duration-cfg.postTone-cfg.preTone, cfg.duration]
-# cfg.timeRanges = [0, cfg.duration]
-cfg.printPopAvgRates = cfg.timeRanges
+step = 250
+cfg.printPopAvgRates = [[t, min(t + step, cfg.timeRanges[1])] for t in range(cfg.timeRanges[0], cfg.timeRanges[1], step)]
 
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
@@ -316,7 +316,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
