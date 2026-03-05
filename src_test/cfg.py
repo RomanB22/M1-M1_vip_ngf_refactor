@@ -37,7 +37,7 @@ cfg._batchtk_path_pointer = None
 cfg.diversity = True
 cfg.percentage = 1  # std of variation in somatic passive properties in the populations
 
-cfg.preTone = 2000
+cfg.preTone = 500
 cfg.postTone = 1000 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
