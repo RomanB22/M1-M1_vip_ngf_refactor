@@ -35,7 +35,7 @@ cfg._batchtk_path_pointer = None
 # Run parameters
 #------------------------------------------------------------------------------
 cfg.diversity = True
-cfg.percentage = 0.2  # percentage of variation in somatic passive properties in the populations
+cfg.percentage = 1  # std of variation in somatic passive properties in the populations
 
 cfg.preTone = 2000
 cfg.postTone = 1000 # Movement part
@@ -171,7 +171,7 @@ cfg.cao_secs = 1.2
 
 cfg.pt5b_variant = "tim"        # "tim" or "standard"
 
-cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 0.3 # 0.3 for "standard", 1.0 for "tim"
+cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
 cfg.loadmutantParams = False # MUTANT LOADING IS CHANGING SOMETHING
 cfg.variant = 'WT' # L1666F, E1211K, D195G, R853Q, K1422E, M1879T, WT
