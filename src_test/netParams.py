@@ -94,14 +94,71 @@ def _module_dir() -> Path:
 MODULE_DIR = _module_dir()     # this is your old sim/ or new src/ folder
 PROJECT_ROOT = MODULE_DIR.parent
 
-def resolve_load_labels(project_root: Path, labels):
+def _parse_cell_load_modes(raw_modes):
+    valid_modes = {"auto", "artifact", "source"}
+    parsed = {}
+    if raw_modes is None:
+        return parsed
+
+    if isinstance(raw_modes, dict):
+        entries = raw_modes.items()
+    else:
+        entries = raw_modes
+
+    for entry in entries:
+        if isinstance(entry, (list, tuple)) and len(entry) == 2:
+            label, mode = entry
+        elif isinstance(entry, dict):
+            label, mode = entry.get("label"), entry.get("mode")
+        else:
+            raise ValueError(
+                "cfg.cellLoadModes must be a dict, or a list of (label, mode) pairs."
+            )
+
+        label = str(label)
+        mode = str(mode).strip().lower()
+        if mode not in valid_modes:
+            raise ValueError(
+                f"Invalid load mode '{mode}' for '{label}'. Use one of: {sorted(valid_modes)}"
+            )
+        parsed[label] = mode
+
+    return parsed
+
+
+def resolve_load_labels(project_root: Path, labels, cell_load_modes):
     cells_dir = project_root / "cells"
     selected = set()
     for lbl in labels:
-        candidates = [cells_dir / f"{lbl}_cellParams.pkl"]
+        mode = cell_load_modes.get(lbl, "auto")
+        if mode == "source":
+            continue
+
         if lbl == "PT5B_full" and getattr(cfg, "pt5b_variant", "standard") == "tim":
-            candidates = [cells_dir / "PT5B_full_cellParams_Tim.pkl"] + candidates
-        if any(p.exists() for p in candidates):
+            tim_rule = Path(
+                getattr(
+                    cfg,
+                    "pt5b_tim_rule_file",
+                    "cells/Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+                )
+            )
+            if not tim_rule.is_absolute():
+                tim_rule = project_root / tim_rule
+            tim_rule = tim_rule.resolve()
+            if not tim_rule.exists():
+                raise FileNotFoundError(
+                    "pt5b_variant='tim' requires a prebuilt PT5B rule file, but it was not found: "
+                    f"{tim_rule} (cfg.pt5b_tim_rule_file)"
+                )
+            selected.add(lbl)
+            continue
+
+        candidate = cells_dir / f"{lbl}_cellParams.pkl"
+        if mode == "artifact" and not candidate.exists():
+            raise FileNotFoundError(
+                f"Cell '{lbl}' is set to artifact mode, but file was not found: {candidate}"
+            )
+        if candidate.exists():
             selected.add(lbl)
     return selected
 
@@ -121,7 +178,8 @@ enabled_labels = enabled_labels_from_config(cell_cfg)
 ctx = Ctx(MODULE_DIR, PROJECT_ROOT, cfg)
 registry_labels = set(build_registry(ctx).keys())
 requested_labels = enabled_labels if enabled_labels else registry_labels
-ctx.loadCellParams = resolve_load_labels(PROJECT_ROOT, requested_labels)
+cell_load_modes = _parse_cell_load_modes(getattr(cfg, "cellLoadModes", []))
+ctx.loadCellParams = resolve_load_labels(PROJECT_ROOT, requested_labels, cell_load_modes)
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))
 
 add_cells_via_import(netParams, cells, ctx)

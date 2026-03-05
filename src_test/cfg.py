@@ -170,6 +170,19 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 cfg.cao_secs = 1.2
 
 cfg.pt5b_variant = "tim"        # "tim" or "standard"
+cfg.pt5b_tim_rule_file = "cells/Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"  # project-root relative or absolute path
+#
+# Per-cell load mode overrides:
+#   mode="auto"     -> load saved artifact if present, else import from source
+#   mode="artifact" -> require saved artifact (fail fast if missing)
+#   mode="source"   -> always import from source
+# Format: list of (cell_label, mode)
+# Example:
+# cfg.cellLoadModes = [
+#     ("PT5B_full", "artifact"),
+#     ("IT5A_full", "source"),
+# ]
+cfg.cellLoadModes = []
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 

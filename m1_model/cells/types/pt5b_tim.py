@@ -12,11 +12,12 @@ class PT5BFullTimFromPy(CellProvider):
     Additional PT5B model (“Tim” variant) under the canonical label PT5B_full.
 
     Pipeline:
-      1) Import from Python source:
-         cells/Neuron_Model_12HH16HH_basaldend/Na12HH_dendModel_TF.py
-         class Na12Model_TF.
+      1) Load prebuilt NetPyNE JSON rule from cfg.pt5b_tim_rule_file
+         (default: cells/Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json).
+         Source import metadata is still provided in ImportSpec for compatibility,
+         and is used if PT5B_full is forced to source mode in cfg.cellLoadModes.
       2) Post-processing:
-         - Rename soma_0 -> soma
+         - Rename soma_0 -> soma (only when needed)
          - Set spikeGenLoc on axon_0
          - Inject pt3d points for axon_0 and axon_1 (keeps SectionLists robust)
          - Reset/compute secLists: perisom, below_soma, alldend, apicdend, spiny
@@ -37,8 +38,10 @@ class PT5BFullTimFromPy(CellProvider):
         label = "PT5B_full"
         rule = netParams.cellParams[label]
 
-        # rename soma to conform to netpyne standard
-        netParams.renameCellParamsSec(label='PT5B_full', oldSec='soma_0', newSec='soma')
+        # Rename only if this rule still uses the pre-normalized soma_0 section naming.
+        secs = rule.get("secs", {})
+        if "soma_0" in secs and "soma" not in secs:
+            netParams.renameCellParamsSec(label='PT5B_full', oldSec='soma_0', newSec='soma')
     
         # set the spike generation location to the axon (default in NEURON is the soma)
         rule['secs']['axon_0']['spikeGenLoc'] = 0.5
@@ -247,8 +250,9 @@ class PT5BFullTimFromPy(CellProvider):
         """
         Prepare the ImportSpec for PT5B_full (Tim variant):
 
-          - Import directly from Na12HH_dendModel_TF.py (class Na12Model_TF)
-          - Save/load a NetPyNE PKL rule for faster subsequent runs.
+          - Load from cfg-configured prebuilt JSON rule.
+          - Keep source-import metadata for compatibility, but Tim runs are
+            expected to load the JSON artifact unless source mode is forced.
         """
         self.ctx = ctx
 
@@ -262,7 +266,16 @@ class PT5BFullTimFromPy(CellProvider):
         )
         model_dir = model_py.parent
         params_dir = model_dir / "params"
-        pkl_path = self.project_root / "cells" / f"{label}_cellParams_Tim.pkl"
+        tim_rule = Path(
+            getattr(
+                ctx.cfg,
+                "pt5b_tim_rule_file",
+                "cells/Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+            )
+        )
+        if not tim_rule.is_absolute():
+            tim_rule = self.project_root / tim_rule
+        tim_rule = tim_rule.resolve()
 
         conds: Dict[str, Any] = {"cellType": "PT", "cellModel": "HH_full"}
 
@@ -280,7 +293,7 @@ class PT5BFullTimFromPy(CellProvider):
                 },
                 "somaAtOrigin": True,
             },
-            save_to_pkl=pkl_path,
-            load_from_pkl=pkl_path,
+            save_to_pkl=None,
+            load_from_pkl=tim_rule,
             post_fn=self._post,
         )
