@@ -21,7 +21,7 @@ slurm_args = {
     'realtime': '10:30:00',
     'nodes': '1',
     'coresPerNode': '120',
-    'mem': '140G',
+    'mem': '240G',
     'partition': 'compute',
     'email': 'romanbaravalle@gmail.com',
     'custom': '',
