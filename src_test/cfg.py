@@ -11,14 +11,6 @@ import pickle
 from pathlib import Path
 import defs
 import gc
-from cell_selection import (
-    load_cells_config,
-    enabled_labels_from_config,
-    resolve_cellmod,
-    resolve_enabled_populations,
-    filter_existing_pops,
-    first_available,
-)
 
 cwd = str(Path.cwd())
 cfg = specs.SimConfig()  
@@ -35,9 +27,9 @@ cfg._batchtk_path_pointer = None
 # Run parameters
 #------------------------------------------------------------------------------
 cfg.diversity = True
-cfg.percentage = 1  # std of variation in somatic passive properties in the populations
+cfg.percentage = 0.2  # percentage of variation in somatic passive properties in the populations
 
-cfg.preTone = 500
+cfg.preTone = 2000
 cfg.postTone = 1000 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
@@ -63,8 +55,8 @@ cfg.progressBar = 0
 
 cfg.includeParamsLabel = False
 cfg.timeRanges = [cfg.duration-cfg.postTone-cfg.preTone, cfg.duration]
-step = 250
-cfg.printPopAvgRates = [[t, min(t + step, cfg.timeRanges[1])] for t in range(cfg.timeRanges[0], cfg.timeRanges[1], step)]
+# cfg.timeRanges = [0, cfg.duration]
+cfg.printPopAvgRates = cfg.timeRanges
 
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
@@ -75,53 +67,24 @@ cfg.random123 = True
 cfg.gpu = False
 
 #------------------------------------------------------------------------------
-# Cells config from YAML
-#------------------------------------------------------------------------------
-MODULE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = MODULE_DIR.parent
-CELLS_CFG_PATH = PROJECT_ROOT / 'config' / 'cells.yml'
-
-base_cellmod = {
-    'IT2': 'HH_reduced',
-    'IT4': 'HH_reduced',
-    'IT5A': 'HH_full',
-    'IT5B': 'HH_reduced',
-    'PT5B': 'HH_full',
-    'IT6': 'HH_reduced',
-    'CT6': 'HH_reduced',
-}
-
-cfg.cellsConfig = load_cells_config(CELLS_CFG_PATH)
-cfg.enabledCellLabels = sorted(enabled_labels_from_config(cfg.cellsConfig))
-enabled_labels = set(cfg.enabledCellLabels)
-cfg.cellmod = resolve_cellmod(base_cellmod, enabled_labels, cfg.cellsConfig)
-cfg.enabledPopulations = resolve_enabled_populations(enabled_labels, cfg.cellmod)
-
-#------------------------------------------------------------------------------
 # Recording 
 #------------------------------------------------------------------------------
-allpops = list(cfg.enabledPopulations)
-available_pop_set = set(allpops)
-default_exc_pop = first_available(['IT2', 'IT4', 'IT5A', 'IT5B', 'PT5B', 'IT6', 'CT6'], available_pop_set)
+allpops = ['NGF1', 'IT2', 'PV2', 'SOM2', 'VIP2', 'NGF2',
+           'IT4', 'PV4', 'SOM4', 'VIP4', 'NGF4',
+           'IT5A', 'PV5A', 'SOM5A','VIP5A','NGF5A',
+           'IT5B', 'PT5B', 'PV5B', 'SOM5B','VIP5B','NGF5B',
+           'IT6','CT6','PV6','SOM6','VIP6','NGF6']
 # allpops = ['PT5B']
-recpops = filter_existing_pops(['PV2', 'PV4', 'PV5A', 'PV5B', 'PV6', 'PT5B'], available_pop_set)
+recpops = ['PV2', 'PV4', 'PV5A', 'PV5B', 'PV6', 'PT5B']
 cfg.cellsrec = 1
 if cfg.cellsrec == 0:  cfg.recordCells = ['all'] # record all cells
 elif cfg.cellsrec == 1: cfg.recordCells = [(pop,0) for pop in allpops] # record one cell of each pop
-elif cfg.cellsrec == 2:
-    cells = [('IT2',10), ('IT5A',10), ('PT5B',10), ('PV5B',10), ('SOM5B',10)]
-    cfg.recordCells = [(pop, idx) for pop, idx in cells if pop in available_pop_set]
-elif cfg.cellsrec == 3:
-    cfg.recordCells = [(pop,50) for pop in ['IT5A', 'PT5B'] if pop in available_pop_set]
-    if 'PT5B' in available_pop_set:
-        cfg.recordCells += [('PT5B',x) for x in [393,579,19,104]]
-elif cfg.cellsrec == 4:
-    cfg.recordCells = [(pop,50) for pop in ['IT2', 'IT4', 'IT5A', 'PT5B'] if pop in available_pop_set] \
-                                        + [('IT5A',x) for x in [393,447,579,19,104] if 'IT5A' in available_pop_set] \
-                                        + [('PT5B',x) for x in [393,447,579,19,104,214,1138,979,799] if 'PT5B' in available_pop_set]
+elif cfg.cellsrec == 2: cfg.recordCells = [('IT2',10), ('IT5A',10), ('PT5B',10), ('PV5B',10), ('SOM5B',10)] # record selected cells
+elif cfg.cellsrec == 3: cfg.recordCells = [(pop,50) for pop in ['IT5A', 'PT5B']]+[('PT5B',x) for x in [393,579,19,104]] #,214,1138,799]] # record selected cells # record selected cells
+elif cfg.cellsrec == 4: cfg.recordCells = [(pop,50) for pop in ['IT2', 'IT4', 'IT5A', 'PT5B']] \
+										+ [('IT5A',x) for x in [393,447,579,19,104]] \
+										+ [('PT5B',x) for x in [393,447,579,19,104,214,1138,979,799]] # record selected cells
 elif cfg.cellsrec == 5: cfg.recordCells =  [(pop, i) for pop in recpops for i in range(0,100,int(100/50))] # record 5 cells of each selected pop
-else:
-    cfg.recordCells = [(pop,0) for pop in allpops]
 
 cfg.recordStim = False
 cfg.recordTime = False  
@@ -156,10 +119,9 @@ cfg.analysis['plotRaster'] = {'include': allpops, 'orderBy': ['pop', 'y'], 'time
                              'orderInverse': True, 'popColors': popColors, 'figSize': (12,18), 'lw': 0.3,
                              'markerSize':3, 'marker': '.', 'dpi': 300} 
 
-cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}}
-if 'PT5B' in available_pop_set:
-    cfg.recordTraces['V_apic_3'] = {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}
-    cfg.recordTraces['V_dend_1'] = {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}
+cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}, 
+                    'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
+                    'V_dend_1': {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'trace', 'figSize': (10,4), 
@@ -170,19 +132,6 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 cfg.cao_secs = 1.2
 
 cfg.pt5b_variant = "tim"        # "tim" or "standard"
-cfg.pt5b_tim_rule_file = "cells/Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"  # project-root relative or absolute path
-#
-# Per-cell load mode overrides:
-#   mode="auto"     -> load saved artifact if present, else import from source
-#   mode="artifact" -> require saved artifact (fail fast if missing)
-#   mode="source"   -> always import from source
-# Format: list of (cell_label, mode)
-# Example:
-# cfg.cellLoadModes = [
-#     ("PT5B_full", "artifact"),
-#     ("IT5A_full", "source"),
-# ]
-cfg.cellLoadModes = []
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
@@ -285,6 +234,14 @@ cfg.syn_drugs = [
     # GABA-B slowing
     {"syn_mechs": ["GABAB"], "param": "tau2", "op": "scale", "value": 1.25},
 ]
+
+cfg.cellmod =  {'IT2': 'HH_reduced',
+				'IT4': 'HH_reduced',
+				'IT5A': 'HH_full',
+				'IT5B': 'HH_reduced',
+				'PT5B': 'HH_full',
+				'IT6': 'HH_reduced',
+				'CT6': 'HH_reduced'}
 
 ihQuiet = 1.0 # Factor for ih gbar in PT cells at quiet state
 # if cfg.pt5b_variant == "tim": ihQuiet = 0.5
@@ -403,7 +360,7 @@ TVLmovement = [0, 10]  # TVL firing rate (Hz)
 
 TVLRates = TVLquiet if cfg.SimulateBaseline else TVLmovement
 
-cfg.ratesLong = {'TPO': LongRangeQuiet, 'TVL': TVLRates, 'S1': LongRangeQuiet, 'S2': [0, 5], 'cM1': LongRangeQuiet, 'M2': LongRangeQuiet, 'OC': [0,5]}
+cfg.ratesLong = {'TPO': LongRangeQuiet, 'TVL': TVLRates, 'S1': LongRangeQuiet, 'S2': LongRangeQuiet, 'cM1': LongRangeQuiet, 'M2': LongRangeQuiet, 'OC': LongRangeQuiet}
 
 ## input pulses
 cfg.addPulses = False
@@ -415,7 +372,7 @@ cfg.pulse2 = {'pop': 'None', 'start': 1000, 'end': 1200, 'rate': 20, 'noise': 0.
 #------------------------------------------------------------------------------
 cfg.addIClamp = 0
 
-cfg.IClamp1 = {'pop': default_exc_pop, 'sec': 'soma', 'loc': 0.5, 'start': 0, 'dur': 1000, 'amp': 0.50}
+cfg.IClamp1 = {'pop': 'IT5B', 'sec': 'soma', 'loc': 0.5, 'start': 0, 'dur': 1000, 'amp': 0.50}
 
 #------------------------------------------------------------------------------
 # NetStim inputs 
@@ -425,7 +382,7 @@ cfg.addNetStim = 0
  			   ## pop, sec, loc, synMech, start, interval, noise, number, weight, delay 
 # cfg.NetStim1 = {'pop': 'IT2', 'sec': 'soma', 'loc': 0.5, 'synMech': ['AMPA','NMDA'], 'synMechWeightFactor': cfg.synWeightFractionEE,
 # 				'start': 500, 'interval': 50.0, 'noise': 0.2, 'number': 1000.0/50.0, 'weight': 10.0, 'delay': 1}
-cfg.NetStim1 = {'pop': default_exc_pop, 'ynorm':[0,1], 'sec': 'soma', 'loc': 0.5, 'synMech': ['AMPA'], 'synMechWeightFactor': [1.0],
+cfg.NetStim1 = {'pop': 'IT2', 'ynorm':[0,1], 'sec': 'soma', 'loc': 0.5, 'synMech': ['AMPA'], 'synMechWeightFactor': [1.0],
 				'start': 500, 'interval': 1000.0/60.0, 'noise': 0.0, 'number': 60.0, 'weight': 30.0, 'delay': 0}
 
 #------------------------------------------------------------------------------

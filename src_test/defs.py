@@ -10,96 +10,44 @@ import random
 import numpy as np
 from collections import defaultdict
 from typing import List, Dict, Union
+import random
 
 from pathlib import Path
-from cell_selection import load_cells_config, enabled_labels_from_config, resolve_enabled_populations
-
-def rateFitnessFuncTranges(simData, **kwargs):
-        pops = kwargs['pops']
-        maxFitness = kwargs['maxFitness']
-        tranges = kwargs['tranges']
-
-        popFitnessAll = []
-
-        for trange in tranges:
-            popFitnessAll.append([min(np.exp(abs(v['target'] - simData['popRates'][k]['%d_%d'%(trange[0], trange[1])])/v['width']), maxFitness) 
-                if simData['popRates'][k]['%d_%d'%(trange[0], trange[1])] > v['min'] else maxFitness for k, v in pops.items()])
-        
-        popFitness = np.mean(np.array(popFitnessAll), axis=0)
-        
-        fitness = np.mean(popFitness)
-
-        popInfo = '; '.join(['%s rate=%.1f fit=%1.f' % (p, np.mean(list(simData['popRates'][p].values())), popFitness[i]) for i,p in enumerate(pops)])
-        print('  ' + popInfo)
-
-        return fitness
+import yaml
 
 #------------------------------------------------------------------------------
 ## Function to calculate the fitness according to required rate
 def rateFitnessFunc(simData, extraConds=False, **kwargs):
+    import numpy as np
     pops = kwargs['pops']
     maxFitness = kwargs['maxFitness']
-    pop_rates = simData.get('popRates', {})
-
-    def _has(*pop_names):
-        return all(pop_name in pop_rates for pop_name in pop_names)
-
-    def _rate(pop_name):
-        return pop_rates.get(pop_name)
 
     factor=1
     # Add extra conditions to the fitness. It 'breaks' the fitness function
     if extraConds:
-        conds = []
         # check I > E in each layer
-        if _has('PV2', 'SOM2', 'IT2'):
-            conds.append((_rate('PV2') > _rate('IT2')) and (_rate('SOM2') > _rate('IT2')))
-        if _has('PV5A', 'SOM5A', 'IT5A'):
-            conds.append((_rate('PV5A') > _rate('IT5A')) and (_rate('SOM5A') > _rate('IT5A')))
-        if _has('PV5B', 'SOM5B', 'IT5B'):
-            conds.append((_rate('PV5B') > _rate('IT5B')) and (_rate('SOM5B') > _rate('IT5B')))
-        if _has('PV6', 'SOM6', 'IT6'):
-            conds.append((_rate('PV6') > _rate('IT6')) and (_rate('SOM6') > _rate('IT6')))
-
+        condsIE_L23 = (simData['popRates']['PV2'] > simData['popRates']['IT2']) and (simData['popRates']['SOM2'] > simData['popRates']['IT2'])
+        condsIE_L5A = (simData['popRates']['PV5A'] > simData['popRates']['IT5A']) and (simData['popRates']['SOM5A'] > simData['popRates']['IT5A'])
+        condsIE_L5B = (simData['popRates']['PV5B'] > simData['popRates']['IT5B']) and (simData['popRates']['SOM5B'] > simData['popRates']['IT5B'])
+        condsIE_L6 = (simData['popRates']['PV6'] > simData['popRates']['IT6']) and (simData['popRates']['SOM6'] > simData['popRates']['IT6'])
         # check E L5 > L6 > L2
-        if _has('IT5A', 'IT5B', 'PT5B', 'IT6', 'CT6'):
-            conds.append(((_rate('IT5A') + _rate('IT5B') + _rate('PT5B')) / 3.0) > ((_rate('IT6') + _rate('CT6')) / 2.0))
-        if _has('IT6', 'CT6', 'IT2'):
-            conds.append(((_rate('IT6') + _rate('CT6')) / 2.0) > _rate('IT2'))
-
+        condEE562_0 = (simData['popRates']['IT5A']+simData['popRates']['IT5B']+simData['popRates']['PT5B'])/3 > (simData['popRates']['IT6']+simData['popRates']['CT6'])/2
+        condEE562_1 = (simData['popRates']['IT6']+simData['popRates']['CT6'])/2 > simData['popRates']['IT2']
         # check PV > SOM in each layer
-        if _has('PV2', 'SOM2'):
-            conds.append(_rate('PV2') > _rate('SOM2'))
-        if _has('PV5A', 'SOM5A'):
-            conds.append(_rate('PV5A') > _rate('SOM5A'))
-        if _has('PV5B', 'SOM5B'):
-            conds.append(_rate('PV5B') > _rate('SOM5B'))
-        if _has('PV6', 'SOM6'):
-            conds.append(_rate('PV6') > _rate('SOM6'))
+        condsPVSOM_L23 = (simData['popRates']['PV2'] > simData['popRates']['SOM2'])
+        condsPVSOM_L5A = (simData['popRates']['PV5A'] > simData['popRates']['SOM5A'])
+        condsPVSOM_L5B = (simData['popRates']['PV5B'] > simData['popRates']['SOM5B'])
+        condsPVSOM_L6 = (simData['popRates']['PV6'] > simData['popRates']['SOM6'])
 
-        if conds and not all(conds):
-            factor = 1.5
+        conds = [condsIE_L23, condsIE_L5A, condsIE_L5B, condsIE_L6, condEE562_0, condEE562_1, condsPVSOM_L23, condsPVSOM_L5A, condsPVSOM_L5B, condsPVSOM_L6]
 
-    popFitness = []
-    for pop_name, pop_cfg in pops.items():
-        pop_rate = pop_rates.get(pop_name)
-        if pop_rate is None or pop_rate <= pop_cfg['min']:
-            popFitness.append(maxFitness)
-            continue
-
-        popFitness.append(min(np.exp(factor * abs(pop_cfg['target'] - pop_rate) / pop_cfg['width']), maxFitness))
-
-    if not popFitness:
-        return maxFitness
-
+        if not all(conds): factor = 1.5
+        
+    popFitness = [min(np.exp(factor*abs(v['target'] - simData['popRates'][k])/v['width']), maxFitness) 
+                if simData['popRates'][k] > v['min'] else maxFitness for k,v in pops.items()]
     fitness = np.mean(popFitness)
 
-    popInfo = '; '.join(
-        [
-            '%s rate=%s fit=%1.f' % (pop_name, 'NA' if pop_rates.get(pop_name) is None else f'{pop_rates[pop_name]:.1f}', popFitness[i])
-            for i, pop_name in enumerate(pops)
-        ]
-    )
+    popInfo = '; '.join(['%s rate=%.1f fit=%1.f'%(p, simData['popRates'][p], popFitness[i]) for i,p in enumerate(pops)])
     print('  '+popInfo)
     return fitness
 
@@ -412,200 +360,130 @@ def strip_range_like_globals(rule: dict) -> None:
         if len(parts) == 2 and parts[0] in range_like_prefixes:
             globs.pop(k, None)
 
-# --- keep only properties for enabled populations and matching rule conditions ---
+# --- keep only properties for cell types whose LABELS are enabled in config/cells.yml ---
 
-def _infer_cellmod_from_pop_params(netParams) -> dict[str, str]:
-    inferred = {
-        'IT2': 'HH_reduced',
-        'IT4': 'HH_reduced',
-        'IT5A': 'HH_full',
-        'IT5B': 'HH_reduced',
-        'PT5B': 'HH_full',
-        'IT6': 'HH_reduced',
-        'CT6': 'HH_reduced',
-    }
-    for pop_name in inferred:
-        spec = (getattr(netParams, 'popParams', {}) or {}).get(pop_name, {})
-        model = spec.get('cellModel') if isinstance(spec, dict) else None
-        if isinstance(model, str):
-            inferred[pop_name] = model
-    return inferred
+def _enabled_labels_from_yaml(p: str | Path) -> set[str]:
+    with open(p, "r") as f:
+        y = yaml.safe_load(f) or {}
+    labels = y.get("enabled_cells", None)
+    if not labels:
+        return set()  # empty => allow all
+    return {str(x) for x in labels}
 
+def _labels_to_celltypes(netParams, labels: set[str]) -> set[str]:
+    """
+    Determine allowed cellTypes by looking up the loaded rules in netParams.cellParams
+    whose labels are listed in `labels`. If labels is empty -> allow all discovered cellTypes.
+    """
+    allowed: set[str] = set()
+    rules = getattr(netParams, "cellParams", {}) or {}
+    if not labels:
+        # No restriction: include all present types
+        for rule in rules.values():
+            ct = (rule.get("conds") or {}).get("cellType")
+            if isinstance(ct, str):
+                allowed.add(ct)
+        return allowed
 
-def _is_numeric(value) -> bool:
-    return isinstance(value, (int, float))
-
-
-def _is_numeric_range(value) -> bool:
-    return isinstance(value, (list, tuple)) and len(value) == 2 and all(_is_numeric(v) for v in value)
-
-
-def _ranges_overlap(a, b) -> bool:
-    return a[0] <= b[1] and b[0] <= a[1]
-
-
-def _ynorm_matches(pop_ynorm, cond_ynorm) -> bool:
-    if cond_ynorm is None:
-        return True
-    if pop_ynorm is None:
-        return True
-    if _is_numeric(cond_ynorm):
-        return pop_ynorm[0] <= cond_ynorm <= pop_ynorm[1]
-    if _is_numeric_range(cond_ynorm):
-        return _ranges_overlap(pop_ynorm, cond_ynorm)
-    if isinstance(cond_ynorm, (list, tuple)):
-        return any(_ynorm_matches(pop_ynorm, item) for item in cond_ynorm)
-    return True
-
-
-def _scalar_or_list_matches(value, condition) -> bool:
-    if isinstance(condition, (list, tuple)) and not _is_numeric_range(condition):
-        return value in condition
-    return value == condition
-
-
-def _pop_matches_conds(pop_name: str, pop_spec: dict, conds: dict) -> bool:
-    if not isinstance(conds, dict):
-        return True
-
-    if 'pop' in conds and not _scalar_or_list_matches(pop_name, conds['pop']):
-        return False
-
-    if 'cellType' in conds:
-        cell_type = pop_spec.get('cellType')
-        if cell_type is None or not _scalar_or_list_matches(cell_type, conds['cellType']):
-            return False
-
-    if 'cellModel' in conds:
-        cell_model = pop_spec.get('cellModel')
-        if cell_model is None or not _scalar_or_list_matches(cell_model, conds['cellModel']):
-            return False
-
-    if 'ynorm' in conds:
-        pop_ynorm = pop_spec.get('ynormRange')
-        if not _ynorm_matches(pop_ynorm, conds['ynorm']):
-            return False
-
-    return True
-
-
-def _tighten_value(condition, allowed_values):
-    if isinstance(condition, list):
-        kept = [value for value in condition if value in allowed_values]
-        return (len(kept) > 0), kept
-    if isinstance(condition, tuple):
-        kept = [value for value in condition if value in allowed_values]
-        return (len(kept) > 0), kept
-    return (condition in allowed_values), condition
-
-
-def _tighten_conds(conds: dict, matched_pop_names: list[str], active_pops: dict[str, dict]) -> tuple[bool, dict]:
-    if not isinstance(conds, dict):
-        return True, conds
-
-    if not matched_pop_names:
-        return False, conds
-
-    matched_specs = [active_pops[pop_name] for pop_name in matched_pop_names]
-    allowed_pop_names = set(matched_pop_names)
-    allowed_cell_types = {spec.get('cellType') for spec in matched_specs if isinstance(spec.get('cellType'), str)}
-    allowed_cell_models = {spec.get('cellModel') for spec in matched_specs if isinstance(spec.get('cellModel'), str)}
-
-    new_conds = dict(conds)
-
-    if 'pop' in new_conds:
-        ok, tightened = _tighten_value(new_conds['pop'], allowed_pop_names)
-        if not ok:
-            return False, conds
-        new_conds['pop'] = tightened
-
-    if 'cellType' in new_conds:
-        ok, tightened = _tighten_value(new_conds['cellType'], allowed_cell_types)
-        if not ok:
-            return False, conds
-        new_conds['cellType'] = tightened
-
-    if 'cellModel' in new_conds:
-        ok, tightened = _tighten_value(new_conds['cellModel'], allowed_cell_models)
-        if not ok:
-            return False, conds
-        new_conds['cellModel'] = tightened
-
-    return True, new_conds
-
-
-def _prune_rule_set(rules: dict, active_pops: dict[str, dict], report: dict, removed_key: str, edited_key: str):
-    for rule_label, rule in list((rules or {}).items()):
-        pre_conds = rule.get('preConds', {})
-        post_conds = rule.get('postConds', {})
-
-        pre_matches = [
-            pop_name for pop_name, pop_spec in active_pops.items()
-            if _pop_matches_conds(pop_name, pop_spec, pre_conds)
-        ]
-        post_matches = [
-            pop_name for pop_name, pop_spec in active_pops.items()
-            if _pop_matches_conds(pop_name, pop_spec, post_conds)
-        ]
-
-        if not pre_matches or not post_matches:
-            del rules[rule_label]
-            report[removed_key].append(rule_label)
+    for lbl in labels:
+        rule = rules.get(lbl)
+        if not isinstance(rule, dict):
             continue
+        ct = (rule.get("conds") or {}).get("cellType")
+        if isinstance(ct, str):
+            allowed.add(ct)
+    return allowed
 
-        pre_ok, pre_new = _tighten_conds(pre_conds, pre_matches, active_pops)
-        post_ok, post_new = _tighten_conds(post_conds, post_matches, active_pops)
+def _filter_celltype_value(value, allowed: set[str]):
+    if isinstance(value, list):
+        kept = [ct for ct in value if ct in allowed]
+        return kept if kept else None
+    else:
+        return value if (isinstance(value, str) and value in allowed) else None
 
-        if not pre_ok or not post_ok:
-            del rules[rule_label]
-            report[removed_key].append(rule_label)
-            continue
+def filter_by_enabled_cells_yaml(netParams, cells_yaml_path: str | Path, verbose: bool = True):
+    """
+    Prune netParams.* so ONLY cell types corresponding to labels listed in config/cells.yml
+    remain referenced.
 
-        if pre_new != pre_conds or post_new != post_conds:
-            rule['preConds'] = pre_new
-            rule['postConds'] = post_new
-            report[edited_key] += 1
-
-
-def filter_by_enabled_cells_yaml(netParams, cells_yaml_path: str | Path, cellmod: dict | None = None, verbose: bool = True):
-    cell_cfg = load_cells_config(Path(cells_yaml_path))
-    enabled_labels = enabled_labels_from_config(cell_cfg)
+    - Reads `enabled_cells` (labels). If empty/missing -> keeps everything.
+    - Maps those labels -> cellTypes via netParams.cellParams[*]['conds']['cellType'].
+    - Removes pops whose pop['cellType'] not in allowed.
+    - Trims or removes connParams/subConnParams when pre/post cellType(s) fall outside allowed.
+    """
+    enabled_labels = _enabled_labels_from_yaml(cells_yaml_path)
+    allowed_types = _labels_to_celltypes(netParams, enabled_labels)
 
     report = {
-        'enabled_labels': sorted(enabled_labels),
-        'removed_pops': [],
-        'removed_conn_rules': [],
-        'edited_conn_rules': 0,
-        'removed_subconn_rules': [],
-        'edited_subconn_rules': 0,
+        "enabled_labels": sorted(enabled_labels),
+        "allowed_cellTypes": sorted(allowed_types),
+        "removed_pops": [],
+        "removed_conn_rules": [],
+        "edited_conn_rules": 0,
+        "removed_subconn_rules": [],
+        "edited_subconn_rules": 0,
     }
-
-    if cellmod is None:
-        cellmod = _infer_cellmod_from_pop_params(netParams)
-
-    if enabled_labels:
-        allowed_local_pops = set(resolve_enabled_populations(enabled_labels, cellmod))
-        for pop_label, spec in list((netParams.popParams or {}).items()):
-            if not isinstance(spec, dict):
-                continue
-            if spec.get('cellModel') == 'VecStim':
-                continue
-            if pop_label not in allowed_local_pops:
-                del netParams.popParams[pop_label]
-                report['removed_pops'].append(pop_label)
-
-    active_pops = {k: v for k, v in (netParams.popParams or {}).items() if isinstance(v, dict)}
-
-    _prune_rule_set(netParams.connParams, active_pops, report, 'removed_conn_rules', 'edited_conn_rules')
-    _prune_rule_set(netParams.subConnParams, active_pops, report, 'removed_subconn_rules', 'edited_subconn_rules')
 
     if verbose:
         if enabled_labels:
             print(f"[cells.yml] Enabled labels: {report['enabled_labels']}")
         else:
-            print('[cells.yml] No labels specified -> no explicit pop pruning.')
+            print("[cells.yml] No labels specified -> no pruning.")
+        print(f"[cells.yml] Allowed cellTypes resolved: {report['allowed_cellTypes']}")
+
+    # Nothing to do if no restriction
+    if not enabled_labels or not allowed_types:
+        return report
+
+    # 1) Populations
+    for pop_label, spec in list((netParams.popParams or {}).items()):
+        ct = spec.get("cellType")
+        if isinstance(ct, str) and ct not in allowed_types:
+            del netParams.popParams[pop_label]
+            report["removed_pops"].append(pop_label)
+
+    # Helper for conds filtering
+    def _filter_conds(conds: dict) -> tuple[bool, dict]:
+        if not isinstance(conds, dict) or "cellType" not in conds:
+            return True, conds
+        new_val = _filter_celltype_value(conds["cellType"], allowed_types)
+        if new_val is None:
+            return False, conds
+        new = dict(conds)
+        new["cellType"] = new_val
+        return True, new
+
+    # 2) Connection rules
+    for rule_label, rule in list((netParams.connParams or {}).items()):
+        pre_ok, pre_new = _filter_conds(rule.get("preConds", {}))
+        post_ok, post_new = _filter_conds(rule.get("postConds", {}))
+        if not pre_ok or not post_ok:
+            del netParams.connParams[rule_label]
+            report["removed_conn_rules"].append(rule_label)
+        else:
+            if pre_new is not rule.get("preConds") or post_new is not rule.get("postConds"):
+                rule["preConds"] = pre_new
+                rule["postConds"] = post_new
+                report["edited_conn_rules"] += 1
+
+    # 3) Subcellular rules
+    for rule_label, rule in list((netParams.subConnParams or {}).items()):
+        pre_ok, pre_new = _filter_conds(rule.get("preConds", {}))
+        post_ok, post_new = _filter_conds(rule.get("postConds", {}))
+        if not pre_ok or not post_ok:
+            del netParams.subConnParams[rule_label]
+            report["removed_subconn_rules"].append(rule_label)
+        else:
+            if pre_new is not rule.get("preConds") or post_new is not rule.get("postConds"):
+                rule["preConds"] = pre_new
+                rule["postConds"] = post_new
+                report["edited_subconn_rules"] += 1
+
+    if verbose:
         print(f"[cells.yml] Removed pops: {report['removed_pops']}")
-        print(f"[cells.yml] Conn rules removed/edited: {len(report['removed_conn_rules'])}/{report['edited_conn_rules']}")
-        print(f"[cells.yml] SubConn rules removed/edited: {len(report['removed_subconn_rules'])}/{report['edited_subconn_rules']}")
+        print(f"[cells.yml] Conn rules removed/edited: "
+              f"{len(report['removed_conn_rules'])}/{report['edited_conn_rules']}")
+        print(f"[cells.yml] SubConn rules removed/edited: "
+              f"{len(report['removed_subconn_rules'])}/{report['edited_subconn_rules']}")
 
     return report
