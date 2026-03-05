@@ -65,7 +65,7 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 #------------------------------------------------------------------------------
 ## Load cell rules previously saved using netpyne format
 cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
-    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
+    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced', 'PT5B_full'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
 # I always need to load it since it throws an error with the other neuron models otherwise
 # if 'PT5B_full' not in cellParamLabels and cfg.pt5b_variant == "tim":
 #     cellParamLabels += ['PT5B_full']
@@ -141,8 +141,9 @@ for lbl, r in netParams.cellParams.items():
 
 # netParams.saveCellParamsRule(
 #     label="PT5B_full",
-#     fileName=str(PROJECT_ROOT / "cells" / "Na12HH16HH_TF_orig.json"),
+#     fileName=str(PROJECT_ROOT / "cells" / "Na12HH16HH_TF_NoWeightNorm.json"),
 # )
+# quit()
 
 from m1_model.utils.mutations import Mutation, apply_mutations
 

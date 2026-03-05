@@ -19,7 +19,7 @@ wscale_PT5B_Tim/ray/
 
 # PDFs
 *.pdf
-
+*.pyc
 ExpanseKey.txt
 netpyne/
 src_MANIFOLDS/
