@@ -64,19 +64,11 @@ netParams.correctBorder = {'threshold': [cfg.correctBorderThreshold, cfg.correct
 
 #------------------------------------------------------------------------------
 ## Load cell rules previously saved using netpyne format
-cellParamLabels = ['IT2_reduced', 'IT4_reduced', 'IT5A_reduced', 'IT5B_reduced', 'PT5B_reduced',
-    'IT6_reduced', 'CT6_reduced', 'SOM_reduced', 'IT5A_full', 'PV_reduced', 'VIP_reduced', 'NGF_reduced', 'PT5B_full'] # , 'PV_reduced', 'VIP_reduced', 'NGF_reduced','PT5B_full'  # list of cell rules to load from file
-# I always need to load it since it throws an error with the other neuron models otherwise
-# if 'PT5B_full' not in cellParamLabels and cfg.pt5b_variant == "tim":
-#     cellParamLabels += ['PT5B_full']
-# loadCellParams = []#cellParamLabels
 saveCellParams = False
-
-# cellParamLabels = []
 
 from pathlib import Path
 import yaml
-from m1_model.cells.registry import get_enabled_cells
+from m1_model.cells.registry import get_enabled_cells, build_registry
 from m1_model.adapters.netpyne_import import add_cells_via_import
 
 # --- robust module directory discovery (works whether __file__ is defined or not) ---
@@ -101,43 +93,73 @@ MODULE_DIR = _module_dir()     # this is your old sim/ or new src/ folder
 PROJECT_ROOT = MODULE_DIR.parent
 
 def resolve_load_labels(project_root: Path, labels):
+    def _normalize_load_mode(mode_value, where: str):
+        mode = str(mode_value).lower()
+        if mode not in {"saved", "source"}:
+            raise ValueError(f"{where} must be either 'saved' or 'source' (got: {mode_value!r})")
+        return mode
+
+    default_mode = _normalize_load_mode(getattr(cfg, "cellModelLoadMode", "saved"), "cfg.cellModelLoadMode")
+    mode_overrides = getattr(cfg, "cellModelLoadModeByLabel", {}) or {}
+    if not isinstance(mode_overrides, dict):
+        raise ValueError("cfg.cellModelLoadModeByLabel must be a dict of {cell_rule_label: mode}")
+
     cells_dir = project_root / "cells"
     selected = set()
     for lbl in labels:
+        load_mode = _normalize_load_mode(
+            mode_overrides.get(lbl, default_mode),
+            f"cfg.cellModelLoadModeByLabel['{lbl}']",
+        )
+        if load_mode == "source":
+            continue
+
         candidates = [cells_dir / f"{lbl}_cellParams.pkl"]
         if lbl == "PT5B_full" and getattr(cfg, "pt5b_variant", "standard") == "tim":
-            candidates = [cells_dir / "PT5B_full_cellParams_Tim.pkl"] + candidates
+            candidates = [
+                project_root / "cells" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"
+            ] + candidates
         if any(p.exists() for p in candidates):
             selected.add(lbl)
     return selected
+
+def resolve_load_candidate_labels(cell_cfg: dict, ctx) -> list[str]:
+    """
+    Determine which cell-rule labels are candidates for saved-file loading.
+    Source of truth:
+      - If config/cells.yml defines enabled_cells -> use that intersection with registry labels.
+      - Else use all registered labels.
+    """
+    registry_labels = set(build_registry(ctx).keys())
+    enabled = (cell_cfg or {}).get("enabled_cells")
+    if not enabled:
+        return sorted(registry_labels)
+    return [str(lbl) for lbl in enabled if str(lbl) in registry_labels]
+
+cfg_path = PROJECT_ROOT / "config" / "cells.yml"
+cell_cfg = yaml.safe_load(open(cfg_path)) if cfg_path.exists() else {}
+
+class _CtxForRegistry:
+    sim_dir = MODULE_DIR
+    project_root = PROJECT_ROOT
+    cfg = cfg
+    loadCellParams = set()
+
+load_candidate_labels = resolve_load_candidate_labels(cell_cfg or {}, _CtxForRegistry)
 
 class Ctx:
     sim_dir = MODULE_DIR
     project_root = PROJECT_ROOT
     cfg = cfg
-    loadCellParams = resolve_load_labels(project_root, cellParamLabels)
-
-cfg_path = PROJECT_ROOT / "config" / "cells.yml"
-cell_cfg = yaml.safe_load(open(cfg_path)) if cfg_path.exists() else {}
+    loadCellParams = resolve_load_labels(PROJECT_ROOT, load_candidate_labels)
 
 ctx = Ctx()
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))
 
 add_cells_via_import(netParams, cells, ctx)
 
-# for lbl, rule in netParams.cellParams.items():
-#     print('-----------------------------')
-#     print(lbl)
-#     print(rule)
-#     print('-----------------------------')
-#     globs = rule.get('globals', {})
-#     bad = [k for k in globs if k.endswith('_catcb')]
-#     if bad:
-#         print('Offending globals in', lbl, ':', bad)
-
-# Apply to all loaded/imported rules
-for lbl, r in netParams.cellParams.items():
-    defs.strip_range_like_globals(r)
+# if "PT5B_full" in netParams.cellParams:
+#     netParams.saveCellParamsRule(label="PT5B_full", fileName=str(PROJECT_ROOT / "PT5B_full_from_netParams_saved.json"))
 
 # netParams.saveCellParamsRule(
 #     label="PT5B_full",
@@ -165,16 +187,6 @@ if getattr(cfg, "mutations_enabled", True):
     report = apply_mutations(netParams, muts, dry_run=getattr(cfg, "mutations_dry_run", False))
     # (optional) print a short summary
     print({ "changed": sum(len(m["changed"]) for m in report["mutations"]), "errors": report["errors"] })
-
-# # print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['nax']['gbar'])
-# print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12']['Ra'])
-# print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12mut']['Ra'])
-# # [print(i, netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12'][i]) for i in netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['na12'] ]
-# print(netParams.cellParams['PT5B_full']['secs']['soma']['mechs']['Ih'])
-# print(netParams.cellParams['PV_reduced']['secs']['soma'])
-# # # print(netParams.cellParams['PT5B_full']['secs']['axon_0']['mechs']['na12mut']['gbar'])
-# # # # print(netParams.cellParams.keys())
-# quit()
 
 if cfg.drugTreatment:
     from m1_model.utils.drug_treatments import apply_cell_mech_drugs, apply_syn_drugs

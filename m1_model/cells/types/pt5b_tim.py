@@ -263,6 +263,11 @@ class PT5BFullTimFromPy(CellProvider):
         model_dir = model_py.parent
         params_dir = model_dir / "params"
         pkl_path = self.project_root / "cells" / f"{label}_cellParams_Tim.pkl"
+        default_load_path = (
+            self.project_root
+            / "cells"
+            / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"
+        )
 
         conds: Dict[str, Any] = {"cellType": "PT", "cellModel": "HH_full"}
 
@@ -281,6 +286,6 @@ class PT5BFullTimFromPy(CellProvider):
                 "somaAtOrigin": True,
             },
             save_to_pkl=pkl_path,
-            load_from_pkl=pkl_path,
+            load_from_pkl=default_load_path,
             post_fn=self._post,
         )

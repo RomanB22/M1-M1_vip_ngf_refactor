@@ -27,16 +27,16 @@ cfg._batchtk_path_pointer = None
 # Run parameters
 #------------------------------------------------------------------------------
 cfg.diversity = True
-cfg.percentage = 0.2  # percentage of variation in somatic passive properties in the populations
+cfg.percentage = 2  # std of variation in somatic passive properties in the populations
 
-cfg.preTone = 200
-cfg.postTone = 1000 # Movement part
+cfg.preTone = 500
+cfg.postTone = 1500 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
 if bool(cfg.SimulateBaseline) is True:
     cfg.postTone = 0
 cfg.duration = 2 * cfg.preTone + cfg.postTone
-cfg.dt = 0.1 #0.025
+cfg.dt = 0.025
 cfg.seeds = {'conn': 4321, 'stim': 1234, 'loc': 4321, 'tvl_sampling': 1234, 'cell': 1234} 
 cfg.hParams = {'celsius': 34, 'v_init': -80}  
 cfg.verbose = False
@@ -61,10 +61,10 @@ cfg.printPopAvgRates = cfg.timeRanges
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
 
-# cfg.rand123GlobalIndex = None
-# cfg.coreneuron = True
-# cfg.random123 = True
-# cfg.gpu = False
+cfg.rand123GlobalIndex = None
+cfg.coreneuron = True
+cfg.random123 = True
+cfg.gpu = False
 
 #------------------------------------------------------------------------------
 # Recording 
@@ -132,6 +132,24 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 cfg.cao_secs = 1.2
 
 cfg.pt5b_variant = "tim"        # "tim" or "standard"
+cfg.cellModelLoadMode = "saved" # default mode: "saved" or "source"
+# Per-cell-rule override (keys are cell rule labels used in netParams, not population names).
+# Set each entry to "saved" (load pre-saved if available) or "source" (force import from source).
+cfg.cellModelLoadModeByLabel = {
+    "IT2_reduced": "saved",
+    "IT4_reduced": "saved",
+    "IT5A_reduced": "saved",
+    "IT5B_reduced": "saved",
+    "PT5B_reduced": "saved",
+    "IT6_reduced": "saved",
+    "CT6_reduced": "saved",
+    "SOM_reduced": "saved",
+    "IT5A_full": "saved",
+    "PV_reduced": "saved",
+    "VIP_reduced": "saved",
+    "NGF_reduced": "saved",
+    "PT5B_full": "saved",
+}
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
@@ -286,7 +304,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
