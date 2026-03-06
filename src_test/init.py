@@ -70,7 +70,9 @@ if sim.rank == 0:
     print('transmitting data...')
     inputs = cfg.get_mappings()
     # print(json.dumps({**inputs}))
-    results = sim.analysis.popAvgRates(tranges=cfg.timeRanges, show=False) #TODO: Avoid printing firing rates
+    # results = sim.analysis.popAvgRates(tranges=cfg.timeRanges, show=False) #TODO: Avoid printing firing rates
+    results = sim.analysis.popAvgRates(tranges=cfg.printPopAvgRates, show=False) #TODO: Avoid printing firing rates
+
 
     sim.simData['popRates'] = results
 
@@ -92,8 +94,11 @@ if sim.rank == 0:
         pops[pop] = Itune
     fitnessFuncArgs['pops'] = pops
     fitnessFuncArgs['maxFitness'] = 1000
+    fitnessFuncArgs['tranges'] = cfg.printPopAvgRates
 
-    rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
+    # rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
+    rateLoss = defs.rateFitnessFuncTranges(sim.simData, **fitnessFuncArgs)
+
     results['loss'] = rateLoss
     out_json = json.dumps({**inputs, **results})
 
