@@ -29,3 +29,5 @@ src_testOLD/
 optimization/
 src/
 v103_manualTune
+sim
+testCellLoading

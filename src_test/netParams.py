@@ -175,12 +175,12 @@ def parse_cfg_mutations(cfg):
         out.append(Mutation(**m))  # dataclass validates keys
     return out
 
-# # Apply external Ca concentration to all sections that define ca ions
-# for cell_name, rule in netParams.cellParams.items():
-#     for sec_name, sec_def in rule.get('secs', {}).items():
-#         ions = sec_def.get('ions', {})
-#         if 'ca' in ions:
-#             ions['ca']['o'] = cfg.cao_secs
+# Apply external Ca concentration to all sections that define ca ions
+for cell_name, rule in netParams.cellParams.items():
+    for sec_name, sec_def in rule.get('secs', {}).items():
+        ions = sec_def.get('ions', {})
+        if 'ca' in ions:
+            ions['ca']['o'] = cfg.cao_secs
 
 if getattr(cfg, "mutations_enabled", True):
     muts = parse_cfg_mutations(cfg)
@@ -202,10 +202,12 @@ if cfg.drugTreatment:
             print("[DRUG]", line)
 
 if cfg.diversity:
+    low = 1.0 - cfg.pasUniformFrac
+    high = 1.0 + cfg.pasUniformFrac
     for cellType in netParams.cellParams.keys():
         for param in netParams.cellParams[cellType]['secs']['soma']['mechs']['pas']:
             value = netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param]
-            netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param] = f'{value}*normal(1, {cfg.percentage})'
+            netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param] = f'{value}*uniform({low}, {high})'
 
 #------------------------------------------------------------------------------
 # Population parameters
