@@ -61,10 +61,10 @@ cfg.printPopAvgRates = cfg.timeRanges
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
 
-# cfg.rand123GlobalIndex = None
-# cfg.coreneuron = True
-# cfg.random123 = True
-# cfg.gpu = False
+cfg.rand123GlobalIndex = None
+cfg.coreneuron = True
+cfg.random123 = True
+cfg.gpu = False
 
 #------------------------------------------------------------------------------
 # Recording 
