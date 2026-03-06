@@ -62,9 +62,6 @@ cfg.printPopAvgRates = [
     for t in range(cfg.timeRanges[0], cfg.timeRanges[1], step)
 ]
 
-# cfg.timeRanges = [0, cfg.duration]
-cfg.printPopAvgRates = cfg.timeRanges
-
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
 
