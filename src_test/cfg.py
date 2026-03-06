@@ -29,7 +29,7 @@ cfg._batchtk_path_pointer = None
 cfg.diversity = True
 cfg.pasUniformFrac = 0.30   # +/-10% variation in somatic passive properties in the populations
 
-cfg.preTone = 500
+cfg.preTone = 1000
 cfg.postTone = 1500 # Movement part
 cfg.SimulateBaseline = True
 cfg.addInVivoThalamus = False # To add the sampled spike times from in-vivo recordings on TVL
@@ -54,17 +54,24 @@ cfg.validateNetParams = True
 cfg.progressBar = 0
 
 cfg.includeParamsLabel = False
-cfg.timeRanges = [0,  cfg.duration]#[cfg.duration-cfg.postTone-cfg.preTone, cfg.duration]
+cfg.timeRanges = [cfg.duration-cfg.postTone-cfg.preTone, cfg.duration]
+step = 250
+
+cfg.printPopAvgRates = [
+    [t, min(t + step, cfg.timeRanges[1])]
+    for t in range(cfg.timeRanges[0], cfg.timeRanges[1], step)
+]
+
 # cfg.timeRanges = [0, cfg.duration]
 cfg.printPopAvgRates = cfg.timeRanges
 
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
 
-# cfg.rand123GlobalIndex = None
-# cfg.coreneuron = True
-# cfg.random123 = True
-# cfg.gpu = False
+cfg.rand123GlobalIndex = None
+cfg.coreneuron = True
+cfg.random123 = True
+cfg.gpu = False
 
 #------------------------------------------------------------------------------
 # Recording 
@@ -119,9 +126,9 @@ cfg.analysis['plotRaster'] = {'include': allpops, 'orderBy': ['pop', 'y'], 'time
                              'orderInverse': True, 'popColors': popColors, 'figSize': (12,18), 'lw': 0.3,
                              'markerSize':3, 'marker': '.', 'dpi': 300} 
 
-cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}}#, 
-                    # 'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
-                    # 'V_dend_1': {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
+cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'}, 
+                    'V_apic_3': {'sec':'apic_3', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}},
+                    'V_dend_1': {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
@@ -304,7 +311,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
