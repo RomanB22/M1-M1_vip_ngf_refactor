@@ -61,10 +61,10 @@ cfg.printPopAvgRates = cfg.timeRanges
 cfg.checkErrors = False
 cfg.checkErrorsVerbose = False
 
-cfg.rand123GlobalIndex = None
-cfg.coreneuron = True
-cfg.random123 = True
-cfg.gpu = False
+# cfg.rand123GlobalIndex = None
+# cfg.coreneuron = True
+# cfg.random123 = True
+# cfg.gpu = False
 
 #------------------------------------------------------------------------------
 # Recording 
@@ -131,7 +131,7 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 #------------------------------------------------------------------------------
 cfg.cao_secs = 1.2
 
-cfg.pt5b_variant = "standard"        # "tim" or "standard"
+cfg.pt5b_variant = "tim"        # "tim" or "standard"
 cfg.cellModelLoadMode = "saved" # default mode: "saved" or "source"
 # Per-cell-rule override (keys are cell rule labels used in netParams, not population names).
 # Set each entry to "saved" (load pre-saved if available) or "source" (force import from source).
@@ -304,7 +304,7 @@ cfg.distributeSynsUniformly = True
 cfg.layer = {'1':[0.0, 0.1], '2': [0.1,0.29], '4': [0.29,0.37], '5A': [0.37,0.47], '24':[0.1,0.37], '5B': [0.47,0.8], '6': [0.8,1.0], 
 'longTPO': [2.0,2.1], 'longTVL': [2.1,2.2], 'longS1': [2.2,2.3], 'longS2': [2.3,2.4], 'longcM1': [2.4,2.5], 'longM2': [2.5,2.6], 'longOC': [2.6,2.7]}  # normalized layer boundaries
 
-cfg.singleCellPops = False  # Create pops with 1 single cell (to debug)
+cfg.singleCellPops = True  # Create pops with 1 single cell (to debug)
 cfg.weightNorm = 1  # use weight normalization
 cfg.weightNormThreshold = 4.0  # weight normalization factor threshold
 
@@ -363,7 +363,7 @@ cfg.addSubConn = True
 #------------------------------------------------------------------------------
 # Long range inputs
 #------------------------------------------------------------------------------
-cfg.addLongConn = False
+cfg.addLongConn = True
 cfg.numCellsLong = int(1000 * cfg.scaleDensity) # num of cells per population
 cfg.noiseLong = 1.0  # firing rate random noise
 cfg.delayLong = 5.0  # (ms)

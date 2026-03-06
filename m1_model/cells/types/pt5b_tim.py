@@ -3,10 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict
-import json
 
 from m1_model.cells.base import ImportSpec, CellProvider
-from m1_model.utils.csv_helpers import csv_to_dict
 
 
 class PT5BFullTimFromPy(CellProvider):
@@ -31,6 +29,38 @@ class PT5BFullTimFromPy(CellProvider):
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self.ctx = None  # set in import_spec
+
+    def _resolve_model_json(self, ctx) -> Path:
+        """
+        Resolve the Tim JSON rule file.
+        Priority:
+          1) cfg.pt5b_tim_json (if provided)
+          2) Current canonical cells/ JSON
+          3) Historical fallback paths
+        """
+        variant = ctx.cfg.variant if getattr(ctx.cfg, "loadmutantParams", False) else "WT"
+        configured = getattr(ctx.cfg, "pt5b_tim_json", None)
+
+        candidates = []
+        if configured:
+            cfg_path = Path(str(configured))
+            if not cfg_path.is_absolute():
+                cfg_path = self.project_root / cfg_path
+            candidates.append(cfg_path)
+
+        candidates.extend(
+            [
+                self.project_root / "cells" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+                self.project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+                self.project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_May29th2025_NoWeightNorm.json",
+                self.project_root / "cells" / "UCDavisCells_Heterozygous" / f"Na12HH16HH_{variant}_11242025.json",
+            ]
+        )
+
+        for path in candidates:
+            if path.exists():
+                return path
+        return candidates[0]
 
     # -------------------------- Post-processing hook --------------------------
 
@@ -81,23 +111,12 @@ class PT5BFullTimFromPy(CellProvider):
         """
         Prepare the ImportSpec for PT5B_full (Tim variant):
 
-          - Write JSON Na params the mod files read (from CSV + cfg.variant/cfg.loadmutantParams)
-          - Import the cell directly from a saved JSON NetPyNE cellParams rule
-            (Na12HH16HH_TF.json), without ever running the Python model file.
+          - Import the cell directly from a saved JSON NetPyNE cellParams rule.
         """
         self.ctx = ctx
 
         label = "PT5B_full"
-        variant = ctx.cfg.variant if getattr(ctx.cfg, "loadmutantParams", False) else "WT"
-        folder = "Heterozygous" 
-
-        # JSON with the full NetPyNE cellParams rule
-        model_json_rule = (
-            self.project_root
-            / "cells"
-            / f"UCDavisCells_{folder}"
-            / f"Na12HH16HH_{variant}_11242025.json"
-        )
+        model_json_rule = self._resolve_model_json(ctx)
 
         # 2) Build ImportSpec: **only** load from JSON, never run the Python file
         conds: Dict[str, Any] = {"cellType": "PT", "cellModel": "HH_full"}

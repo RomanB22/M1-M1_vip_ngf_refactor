@@ -116,9 +116,24 @@ def resolve_load_labels(project_root: Path, labels):
 
         candidates = [cells_dir / f"{lbl}_cellParams.pkl"]
         if lbl == "PT5B_full" and getattr(cfg, "pt5b_variant", "standard") == "tim":
-            candidates = [
-                project_root / "cells" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json"
-            ] + candidates
+            tim_candidates = []
+            configured = getattr(cfg, "pt5b_tim_json", None)
+            if configured:
+                cfg_path = Path(str(configured))
+                if not cfg_path.is_absolute():
+                    cfg_path = project_root / cfg_path
+                tim_candidates.append(cfg_path)
+
+            variant = cfg.variant if getattr(cfg, "loadmutantParams", False) else "WT"
+            tim_candidates.extend(
+                [
+                    project_root / "cells" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+                    project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_Feb18th2026_NoWeightNorm.json",
+                    project_root / "wscale_PT5B_Tim" / "Na12HH16HH_TF_May29th2025_NoWeightNorm.json",
+                    project_root / "cells" / "UCDavisCells_Heterozygous" / f"Na12HH16HH_{variant}_11242025.json",
+                ]
+            )
+            candidates = tim_candidates + candidates
         if any(p.exists() for p in candidates):
             selected.add(lbl)
     return selected
