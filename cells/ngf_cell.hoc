@@ -78,6 +78,7 @@ proc init() {
 		gmax_ch_Navngf=3.7860265
 		ena = 55
 
+
 		// Fast K+  	//kdrf 
 		insert ch_Kdrfastngf
 		gmax_ch_Kdrfastngf=0.03 //0.15514516
