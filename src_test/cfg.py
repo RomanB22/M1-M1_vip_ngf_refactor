@@ -131,7 +131,7 @@ cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'},
                     'V_dend_1': {'sec':'dend_1', 'loc':0.5, 'var':'v', 'conds':{'pop': 'PT5B'}}}
 
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
-								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
+								'overlay': True, 'oneFigPer': 'trace', 'figSize': (10,4), 
 								'saveFig': True, 'subtitles': True, 'legend': True} 
 #------------------------------------------------------------------------------
 # Cells
