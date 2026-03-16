@@ -53,6 +53,7 @@ INITIAL {
     plateau_max_ms = 0
     accepted_count = 0
     rejected_count = 0
+    net_send(0, 1)
 }
 
 BREAKPOINT {
@@ -113,4 +114,13 @@ BREAKPOINT {
 
     last_v = v
     last_dvdt = dvdt
+}
+
+NET_RECEIVE (w) {
+    if (flag == 1) {
+        WATCH (detector_v > 0.5) 2
+    } else if (flag == 2) {
+        net_event(t)
+        WATCH (detector_v < 0.5) 1
+    }
 }

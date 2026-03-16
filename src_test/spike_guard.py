@@ -129,6 +129,10 @@ def inject_guard_into_rule(rule: dict[str, Any], raw_cfg: Any) -> dict[str, Any]
     return {"secName": sec_name, "loc": loc}
 
 
+def is_spike_guard_pointp(pointp_name: str, pointp_params: Mapping[str, Any]) -> bool:
+    return pointp_name == DEFAULT_POINTP_NAME or pointp_params.get("mod") == "SpikeGuard"
+
+
 def inject_guard_into_netparams(netParams: Any, raw_cfg: Any) -> dict[str, Any]:
     report = {"eligible": 0, "injected": 0, "labels": {}}
     if not guard_enabled(raw_cfg):
@@ -146,17 +150,18 @@ def inject_guard_into_netparams(netParams: Any, raw_cfg: Any) -> dict[str, Any]:
 
 
 def install_netpyne_spike_source_patch() -> None:
+    from neuron import h
     from netpyne import sim
     from netpyne.cell.compartCell import CompartCell
 
-    if getattr(CompartCell._setConnPointP, "_spike_guard_patched", False):
+    if getattr(CompartCell, "_spike_guard_patch_installed", False):
         return
 
     def set_conn_pointp_ignoring_spike_guard(self: Any, params: dict[str, Any], secLabels: list[str], weightIndex: int):
         pointp = None
         if len(secLabels) == 1 and "pointps" in self.secs[secLabels[0]]:
             for pointp_name, pointp_params in self.secs[secLabels[0]]["pointps"].items():
-                if pointp_name == DEFAULT_POINTP_NAME or pointp_params.get("mod") == "SpikeGuard":
+                if is_spike_guard_pointp(pointp_name, pointp_params):
                     continue
                 if "vref" in pointp_params:
                     pointp = pointp_name
@@ -176,8 +181,48 @@ def install_netpyne_spike_source_patch() -> None:
 
         return pointp, weightIndex
 
+    def associate_gid_using_spike_guard_events(self: Any, threshold: float | None = None):
+        if self.secs:
+            if sim.cfg.createNEURONObj:
+                if hasattr(sim, "rank"):
+                    sim.pc.set_gid2node(self.gid, sim.rank)
+                else:
+                    sim.pc.set_gid2node(self.gid, 0)
+
+                loc, sec = CompartCell.spikeGenLocAndSec(self.secs)
+                nc = None
+                if "pointps" in sec:
+                    for pointp_name, pointp_params in sec["pointps"].items():
+                        pointp_hobj = sec["pointps"][pointp_name].get("hObj")
+                        if pointp_hobj is None:
+                            continue
+                        if is_spike_guard_pointp(pointp_name, pointp_params):
+                            nc = h.NetCon(pointp_hobj, None)
+                            break
+                        if "vref" in pointp_params:
+                            nc = h.NetCon(
+                                getattr(pointp_hobj, "_ref_" + pointp_params["vref"]),
+                                None,
+                                sec=sec["hObj"],
+                            )
+                            break
+
+                if not nc:
+                    nc = h.NetCon(sec["hObj"](loc)._ref_v, None, sec=sec["hObj"])
+
+                if "threshold" in sec:
+                    threshold = sec["threshold"]
+                threshold = threshold if threshold is not None else sim.net.params.defaultThreshold
+                nc.threshold = threshold
+                sim.pc.cell(self.gid, nc, 1)
+                del nc
+        sim.net.gid2lid[self.gid] = len(sim.net.gid2lid)
+
     set_conn_pointp_ignoring_spike_guard._spike_guard_patched = True  # type: ignore[attr-defined]
     CompartCell._setConnPointP = set_conn_pointp_ignoring_spike_guard
+    associate_gid_using_spike_guard_events._spike_guard_patched = True  # type: ignore[attr-defined]
+    CompartCell.associateGid = associate_gid_using_spike_guard_events
+    CompartCell._spike_guard_patch_installed = True
 
 
 def _guard_pointp_from_cell(cell: Any, pointp_name: str) -> tuple[Any, Any] | tuple[None, None]:

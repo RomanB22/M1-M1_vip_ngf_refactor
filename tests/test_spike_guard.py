@@ -84,6 +84,12 @@ def test_guard_injection_preserves_spikegenloc_and_skips_vecstim():
     assert skipped is None
 
 
+def test_guard_pointp_detection_matches_name_or_mod():
+    assert spike_guard.is_spike_guard_pointp("spike_guard", {"mod": "Other"})
+    assert spike_guard.is_spike_guard_pointp("custom_name", {"mod": "SpikeGuard"})
+    assert not spike_guard.is_spike_guard_pointp("custom_name", {"mod": "Izhi2007a"})
+
+
 def test_collect_metrics_finds_guard_on_non_root_section():
     cfg = spike_guard.default_spike_guard_config()
 
