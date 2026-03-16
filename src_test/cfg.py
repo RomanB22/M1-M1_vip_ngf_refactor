@@ -7,13 +7,19 @@ Contributors: salvadordura@gmail.com
 """
 
 from netpyne import specs
+
+try:
+    from netpyne.batchtools.runners import Runner_SimConfig as BatchRunnerSimConfig
+except Exception:
+    BatchRunnerSimConfig = None
+
 import pickle
 from pathlib import Path
 import defs
 import gc
 
 cwd = str(Path.cwd())
-cfg = specs.SimConfig()  
+cfg = BatchRunnerSimConfig() if BatchRunnerSimConfig is not None else specs.SimConfig()
 
 #------------------------------------------------------------------------------
 #
@@ -130,6 +136,10 @@ cfg.recordTraces = {'V_soma': {'sec':'soma', 'loc':0.5, 'var':'v'},
 cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
 								'overlay': True, 'oneFigPer': 'trace', 'figSize': (10,4), 
 								'saveFig': True, 'subtitles': True, 'legend': True} 
+
+# cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeRanges, 
+# 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
+# 								'saveFig': True, 'subtitles': True, 'legend': True} 
 #------------------------------------------------------------------------------
 # Cells
 #------------------------------------------------------------------------------
@@ -156,6 +166,38 @@ cfg.cellModelLoadMode = "saved" # default mode: "saved" or "source"
 # }
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
+
+cfg.spikeGuard = {
+    'enabled': True,
+    'pointpName': 'spike_guard',
+    'mod': 'SpikeGuard',
+    'vref': 'detector_v',
+    'candidateStartMv': -20.0,
+    'plateauMv': -40.0,
+    'plateauMs': 100.0,
+    'thresholdForDetectorV': 0.5,
+    'lossPenaltyPerBlockedPop': 250.0,
+    'blockedFractionThreshold': 0.10,
+    'blockedMinCells': 3,
+    'blockedNoSpikesMinRejected': 5,
+    'blockedRejectedScale': 3,
+    'blockedRejectedOffset': 5,
+    'families': {
+        'exc': {
+            'minPeakMv': 10.0,
+            'minProminenceMv': 20.0,
+            'minDvdtMvPerMs': 10.0,
+            'refractoryMs': 2.0,
+        },
+        'inh': {
+            'minPeakMv': 0.0,
+            'minProminenceMv': 15.0,
+            'minDvdtMvPerMs': 8.0,
+            'refractoryMs': 1.0,
+        },
+    },
+    'cellTypeOverrides': {},
+}
 
 cfg.loadmutantParams = False # MUTANT LOADING IS CHANGING SOMETHING
 cfg.variant = 'WT' # L1666F, E1211K, D195G, R853Q, K1422E, M1879T, WT

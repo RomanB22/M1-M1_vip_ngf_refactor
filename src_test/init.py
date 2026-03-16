@@ -18,6 +18,7 @@ import json
 from netParams import netParams, cfg
 from pathlib import Path
 import defs
+from spike_guard import collect_local_guard_metrics, summarize_guard_metrics, blockade_penalty, guard_summary_for_results
 
 
 sim.initialize(
@@ -47,6 +48,10 @@ sim.setupRecording()              			# setup variables to record for each cell (
 #------------------------------------------------------------------------------
 # Simulation option 1: standard
 sim.runSim()                              # run parallel Neuron simulation (calling func to modify mechs)
+
+if getattr(cfg, 'spikeGuard', {}).get('enabled', False):
+    sim.simData['spikeGuardLocal'] = collect_local_guard_metrics(sim.net.cells, cfg.spikeGuard)
+
 # # Simulation option 2: interval function to modify mechanism params
 #TODO: Check that it works properly on CoreNEURON
 # print(cfg.modifyMechs)
@@ -60,6 +65,15 @@ sim.gatherData()                  			# gather spiking data and cell info from ea
 sim.simData.numSampledCellsPerLayer = cfg.numSampledCellsPerLayer
 sim.simData.norm_layers = cfg.layer
 
+if sim.rank == 0 and getattr(cfg, 'spikeGuard', {}).get('enabled', False):
+    spikeGuardSummary = summarize_guard_metrics(
+        sim.allSimData.get('spikeGuardLocal', {}),
+        cfg.spikeGuard,
+        bool(cfg.singleCellPops),
+    )
+    sim.simData['spikeGuard'] = spikeGuardSummary
+    sim.allSimData['spikeGuard'] = spikeGuardSummary
+
 sim.saveData()                    			# save params, cell info and sim output to file (pickle,mat,txt,etc)#
 sim.analysis.plotData()         			# plot spike raster etc
 
@@ -68,6 +82,8 @@ print('completed simulation...')
 if sim.rank == 0:
     # netParams.save("{}/{}_params.json".format(cfg.saveFolder, cfg.simLabel))
     print('transmitting data...')
+    if not hasattr(cfg, 'get_mappings'):
+        raise AttributeError("cfg.get_mappings() is required for result export")
     inputs = cfg.get_mappings()
     # print(json.dumps({**inputs}))
     # results = sim.analysis.popAvgRates(tranges=cfg.timeRanges, show=False) #TODO: Avoid printing firing rates
@@ -99,7 +115,18 @@ if sim.rank == 0:
     # rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
     rateLoss = defs.rateFitnessFuncTranges(sim.simData, **fitnessFuncArgs)
 
+    spikeGuardSummary = None
+    if getattr(cfg, 'spikeGuard', {}).get('enabled', False):
+        spikeGuardSummary = summarize_guard_metrics(
+            sim.allSimData.get('spikeGuardLocal', {}),
+            cfg.spikeGuard,
+            bool(cfg.singleCellPops),
+        )
+        rateLoss += blockade_penalty(spikeGuardSummary, cfg.spikeGuard)
+
     results['loss'] = rateLoss
+    if spikeGuardSummary is not None:
+        results['spikeGuard'] = guard_summary_for_results(spikeGuardSummary)
     out_json = json.dumps({**inputs, **results})
 
     print(out_json)

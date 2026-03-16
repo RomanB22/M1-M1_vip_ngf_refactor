@@ -70,6 +70,7 @@ from pathlib import Path
 import yaml
 from m1_model.cells.registry import get_enabled_cells, build_registry
 from m1_model.adapters.netpyne_import import add_cells_via_import
+from spike_guard import inject_guard_into_netparams, install_netpyne_spike_source_patch
 
 # --- robust module directory discovery (works whether __file__ is defined or not) ---
 import inspect
@@ -172,6 +173,7 @@ ctx = Ctx()
 cells = list(get_enabled_cells(cell_cfg or {}, ctx))
 
 add_cells_via_import(netParams, cells, ctx)
+install_netpyne_spike_source_patch()
 
 # if "PT5B_full" in netParams.cellParams:
 #     netParams.saveCellParamsRule(label="PT5B_full", fileName=str(PROJECT_ROOT / "PT5B_full_from_netParams_saved.json"))
@@ -223,6 +225,10 @@ if cfg.diversity:
         for param in netParams.cellParams[cellType]['secs']['soma']['mechs']['pas']:
             value = netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param]
             netParams.cellParams[cellType]['secs']['soma']['mechs']['pas'][param] = f'{value}*uniform({low}, {high})'
+
+spikeGuardReport = inject_guard_into_netparams(netParams, getattr(cfg, 'spikeGuard', None))
+if cfg.verbose and spikeGuardReport['injected']:
+    print(f"[SpikeGuard] injected into {spikeGuardReport['injected']} cell rules")
 
 #------------------------------------------------------------------------------
 # Population parameters
