@@ -27,3 +27,41 @@ slurm_args = {
     'custom': '',
     'command': CONFIG_EXPANSE_CPU,  # ← FIXED: remove braces
 }
+
+from pathlib import Path
+project_root = Path(__file__).resolve().parent.parent
+
+CONFIG_EXPANSE_SGE = f"""
+# >>> Conda setup
+source ~/.bashrc
+conda activate M1_dev
+# <<< End Conda setup
+
+PROJECT_ROOT="{project_root}"
+
+export LD_LIBRARY_PATH=$HOME/miniconda3/envs/M1_dev/lib/python3.10/site-packages/mpi4py_mpich.libs
+
+# Recover even if the outer batchtk template leaves cd {{project_path}} unresolved.
+cd "$PROJECT_ROOT" || exit 1
+
+# Add project root and src to PYTHONPATH
+export PYTHONPATH="$PYTHONPATH:$PWD"
+export PYTHONPATH="$PYTHONPATH:$PWD/src_test"
+
+mpiexec -n $NSLOTS -hosts $(hostname) nrniv -python -mpi src_test/init.py
+"""
+
+from batchtk.utils import expand_path
+from pathlib import Path
+project_root = Path(__file__).resolve().parent.parent
+output_root = project_root / 'optimization'
+results_path = output_root / 'cmaes' / 'cmaes_results_Feb25.txt'
+
+sge_config = {
+    'queue': 'cpu.q',
+    'cores': 50,
+    'vmem': '120G',
+    'realtime': '15:00:00',
+    'command': CONFIG_EXPANSE_SGE,
+    'project_path': project_root,
+}
