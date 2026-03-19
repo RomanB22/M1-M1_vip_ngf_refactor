@@ -37,12 +37,7 @@ source ~/.bashrc
 conda activate M1_dev
 # <<< End Conda setup
 
-PROJECT_ROOT="{project_root}"
-
 export LD_LIBRARY_PATH=$HOME/miniconda3/envs/M1_dev/lib/python3.10/site-packages/mpi4py_mpich.libs
-
-# Recover even if the outer batchtk template leaves cd {{project_path}} unresolved.
-cd "$PROJECT_ROOT" || exit 1
 
 # Add project root and src to PYTHONPATH
 export PYTHONPATH="$PYTHONPATH:$PWD"
