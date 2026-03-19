@@ -1,0 +1,3 @@
+from m1_model.jaxley_m1 import M1, M1_DEFAULT_PARAMS, M1_PARAM_BOUNDS, M1_PARAM_ORDER
+
+__all__ = ["M1", "M1_DEFAULT_PARAMS", "M1_PARAM_BOUNDS", "M1_PARAM_ORDER"]

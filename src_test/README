@@ -24,3 +24,12 @@ Requires NEURON with Python and MPI support.
 
 For further information please contact: salvadordura@gmail.com 
 
+## Jaxley Fitting Path
+
+The differentiable surrogate path is available via `python src_test/jaxley_fit.py`.
+
+It requires `jax`, `jaxley`, and `optax`, and writes run artifacts under `optimization/jaxley/`.
+
+Example:
+
+`python src_test/jaxley_fit.py --steps 1000 --lr 1e-2 --seed 42 --device cpu --outdir optimization/jaxley`
