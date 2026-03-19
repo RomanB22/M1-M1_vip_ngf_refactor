@@ -141,18 +141,18 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 # 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
 # 								'saveFig': True, 'subtitles': True, 'legend': True} 
 
-# # Recording
-# # old sim/ version already used this same LFP layout
-# # center of the 300 x 1350 x 300 um column
-# cfg.recordLFP = [[150, y, 150] for y in range(200, 1300, 100)]
+# Recording
+# old sim/ version already used this same LFP layout
+# center of the 300 x 1350 x 300 um column
+cfg.recordLFP = [[150, y, 150] for y in range(200, 1300, 100)]
 
-# # EEG in NetPyNE comes from dipole recording, not from recordLFP
-# cfg.recordDipole = True
+# EEG in NetPyNE comes from dipole recording, not from recordLFP
+cfg.recordDipole = True
 
-# # optional: cheaper for LFP/EEG if runtime or memory gets heavy
-# # cfg.recordStep = 0.1
+# optional: cheaper for LFP/EEG if runtime or memory gets heavy
+# cfg.recordStep = 0.1
 
-# # Analysis
+# Analysis
 # cfg.analysis['plotLFP'] = {
 #     'plots': ['timeSeries', 'PSD', 'spectrogram', 'locations'],   # add 'PSD', 'spectrogram', 'locations' if needed
 #     'electrodes': [10],        # with the range above, 10 is the deepest electrode
