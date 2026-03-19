@@ -224,7 +224,7 @@ cfg.spikeGuard = {
 cfg.loadmutantParams = False # MUTANT LOADING IS CHANGING SOMETHING
 cfg.variant = 'WT' # L1666F, E1211K, D195G, R853Q, K1422E, M1879T, WT
 
-if cfg.loadmutantParams: ValueError("cfg.loadmutantParams is not implemented yet")
+if cfg.loadmutantParams: raise ValueError("cfg.loadmutantParams is not implemented yet")
 
 # --- toggles ---
 cfg.heterozygous = False   # zero out na12mut
