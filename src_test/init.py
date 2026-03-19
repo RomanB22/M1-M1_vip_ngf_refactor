@@ -125,8 +125,10 @@ if sim.rank == 0:
         rateLoss += blockade_penalty(spikeGuardSummary, cfg.spikeGuard)
 
     results['loss'] = rateLoss
+    spikeGuardDict={}
     if spikeGuardSummary is not None:
-        results['spikeGuard'] = guard_summary_for_results(spikeGuardSummary)
+        spikeGuardDict['spikeGuard'] = guard_summary_for_results(spikeGuardSummary)
+        print(spikeGuardDict['spikeGuard'])
     out_json = json.dumps({**inputs, **results})
 
     print(out_json)
