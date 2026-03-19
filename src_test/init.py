@@ -115,21 +115,25 @@ if sim.rank == 0:
     # rateLoss = defs.rateFitnessFunc(sim.simData, **fitnessFuncArgs)
     rateLoss = defs.rateFitnessFuncTranges(sim.simData, **fitnessFuncArgs)
 
-    spikeGuardSummary = None
+    spikeGuardInfo = None
     if getattr(cfg, 'spikeGuard', {}).get('enabled', False):
         spikeGuardSummary = summarize_guard_metrics(
             sim.allSimData.get('spikeGuardLocal', {}),
             cfg.spikeGuard,
             bool(cfg.singleCellPops),
         )
-        rateLoss += blockade_penalty(spikeGuardSummary, cfg.spikeGuard)
+        spikeGuardInfo = guard_summary_for_results(spikeGuardSummary)
+        print("spikeGuard:", spikeGuardInfo)
+        rateLoss += float(blockade_penalty(spikeGuardSummary, cfg.spikeGuard))
 
-    results['loss'] = rateLoss
-    spikeGuardDict={}
-    if spikeGuardSummary is not None:
-        spikeGuardDict['spikeGuard'] = guard_summary_for_results(spikeGuardSummary)
-        print(spikeGuardDict['spikeGuard'])
-    out_json = json.dumps({**inputs, **results})
+    print("popRates:", results)
+    print("loss:", rateLoss)
 
+    payload = {
+        **inputs,
+        "loss": float(rateLoss),
+    }
+
+    out_json = json.dumps(payload)
     print(out_json)
     sim.send(out_json)
