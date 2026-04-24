@@ -144,23 +144,21 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 # Recording
 # old sim/ version already used this same LFP layout
 # center of the 300 x 1350 x 300 um column
-# cfg.recordLFP = [[150, y, 150] for y in range(200, 1300, 100)]
+cfg.recordLFP = [[150, y, 150] for y in range(200, 1300, 100)]
 
-# # EEG in NetPyNE comes from dipole recording, not from recordLFP
-# cfg.recordDipole = True
-
-# optional: cheaper for LFP/EEG if runtime or memory gets heavy
-# cfg.recordStep = 0.1
+# EEG in NetPyNE comes from dipole recording, not from recordLFP
+cfg.recordDipole = True
 
 # Analysis
-# cfg.analysis['plotLFP'] = {
-#     'plots': ['timeSeries', 'PSD', 'spectrogram', 'locations'],   # add 'PSD', 'spectrogram', 'locations' if needed
-#     'electrodes': [10],        # with the range above, 10 is the deepest electrode
-#     'timeRange': cfg.timeRanges, 'maxFreq': 80, 'figSize': (8, 4), 'saveData': False, 'saveFig': True, 'showFig': False}
+cfg.analysis['plotLFP'] = {
+    'plots': ['timeSeries', 'PSD', 'spectrogram', 'locations'],   # add 'PSD', 'spectrogram', 'locations' if needed
+    'electrodes': [2,4,6,8,10],        # with the range above, 10 is the deepest electrode
+    'timeRange': cfg.timeRanges, 'minFreq': 1, 'maxFreq': 80, 'figSize': (8, 4), 'saveData': False, 'saveFig': True, 'showFig': False}
 
-# cfg.analysis['plotDipole'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
+cfg.analysis['plotDipole'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
+cfg.analysis['plotCSD'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
 
-# cfg.analysis['plotEEG'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
+cfg.analysis['plotEEG'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
 
 #------------------------------------------------------------------------------
 # Cells
@@ -171,21 +169,21 @@ cfg.pt5b_variant = "tim"        # "tim" or "standard"
 cfg.cellModelLoadMode = "saved" # default mode: "saved" or "source"
 # Per-cell-rule override (keys are cell rule labels used in netParams, not population names).
 # Set each entry to "saved" (load pre-saved if available) or "source" (force import from source).
-# cfg.cellModelLoadModeByLabel = {
-#     "IT2_reduced": "saved",
-#     "IT4_reduced": "saved",
-#     "IT5A_reduced": "saved",
-#     "IT5B_reduced": "saved",
-#     "PT5B_reduced": "saved",
-#     "IT6_reduced": "saved",
-#     "CT6_reduced": "saved",
-#     "SOM_reduced": "saved",
-#     "IT5A_full": "saved",
-#     "PV_reduced": "saved",
-#     "VIP_reduced": "saved",
-#     "NGF_reduced": "saved",
-#     "PT5B_full": "saved",
-# }
+cfg.cellModelLoadModeByLabel = {
+    "IT2_reduced": "saved",
+    "IT4_reduced": "saved",
+    "IT5A_reduced": "saved",
+    "IT5B_reduced": "saved",
+    "PT5B_reduced": "saved",
+    "IT6_reduced": "saved",
+    "CT6_reduced": "saved",
+    "SOM_reduced": "saved",
+    "IT5A_full": "saved",
+    "PV_reduced": "saved",
+    "VIP_reduced": "saved",
+    "NGF_reduced": "saved",
+    "PT5B_full": "source",
+}
 
 cfg.dendNa = 0.3 if cfg.pt5b_variant=="standard" else 1.0 # 0.3 for "standard", 1.0 for "tim"
 
