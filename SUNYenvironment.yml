@@ -1,0 +1,39 @@
+name: CompNeuroCourse
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Keep only top-level dependencies so Conda can resolve the right builds
+  # for the target platform instead of replaying an arm64-specific solve.
+  - python=3.11
+  - pip
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - bokeh
+  - pyyaml
+  - tqdm
+  - mpich
+  - mpi4py
+  - optuna
+  - pip:
+      - batchtk==0.1.6
+      - netpyne==1.1.1
+      - neuron==9.0.1
+      - ray[tune]==2.55.0
+      - scikit-learn
+      - lfpykit==0.6.2
+      - meautility==1.5.3
+      - matplotlib-scalebar==0.9.0
+      - fabric
+##
+# After doing conda activate CompNeuroCourse, you can run the following command to install the rest of the packages:
+# git clone https://github.com/suny-downstate-medical-center/netpyne.git
+# cd netpyne
+# pip install -e .
+
+# git clone https://github.com/suny-downstate-medical-center/batchtk.git
+# cd batchtk
+# pip install -e .
+##
