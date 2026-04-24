@@ -1,4 +1,4 @@
-from netpyne.batchtools.search import search, grid
+from netpyne.batchtools.search import search
 
 # -------------------------------------------------------------------------
 # Batch parameters – grid search over simConfig.seeds sub-keys
