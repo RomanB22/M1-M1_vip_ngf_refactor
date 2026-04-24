@@ -21,7 +21,7 @@ for name, chosen_params in {
         comm_type='sfs',
         params=params,
         run_config={
-            'command': 'conda activate CompNeuroCourse \nexport PYTHONPATH=$PWD  \nexport UCX_TLS=tcp,self \nexport LD_LIBRARY_PATH=~/miniconda3/envs/CompNeuroCourse/lib\nsrun --mpi=pmi2 nrniv -python -mpi python -u src_test/init.py',
+            'command': 'conda activate CompNeuroCourse \nexport PYTHONPATH=$PWD:$PWD/src_test  \nexport UCX_TLS=tcp,self \nexport LD_LIBRARY_PATH=~/miniconda3/envs/CompNeuroCourse/lib \nsrun --mpi=pmi2 nrniv -python -mpi python -u src_test/init.py',
             'cores': 52,
             'mem': '200G',
             'realtime': '10:30:00'
