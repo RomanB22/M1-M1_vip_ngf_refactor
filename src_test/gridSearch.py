@@ -11,8 +11,7 @@ for name, chosen_params in {
 }.items():
     params = {k: [v] for k, v in chosen_params.items()} | {
         'seeds.conn': [4321 + (17*i) for i in range(5)],
-        'seeds.stim': [4321 + (17*i) for i in range(5)],
-        'saveJson': ['True'],
+        'seeds.stim': [4321 + (17*i) for i in range(5)]
     }
     # -------------------------------------------------------------------------
     # Run the grid search (25 combinations: 5 x 5)
@@ -22,7 +21,7 @@ for name, chosen_params in {
         comm_type='sfs',
         params=params,
         run_config={
-            'command': 'conda activate CompNeuroCourse \nexport UCX_TLS=tcp,self \nexport LD_LIBRARY_PATH=~/miniconda3/envs/CompNeuroCourse/lib\nsrun --mpi=pmi2 nrniv -python -mpi python -u src/init.py',
+            'command': 'conda activate CompNeuroCourse \nexport UCX_TLS=tcp,self \nexport LD_LIBRARY_PATH=~/miniconda3/envs/CompNeuroCourse/lib\nsrun --mpi=pmi2 nrniv -python -mpi python -u src_test/init.py',
             'cores': 52,
             'mem': '200G',
             'realtime': '10:30:00'
