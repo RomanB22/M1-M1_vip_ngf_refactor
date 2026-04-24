@@ -12,7 +12,7 @@ for name, chosen_params in {
     params = {k: [v] for k, v in chosen_params.items()} | {
         'seeds.conn': [4321 + (17*i) for i in range(5)],
         'seeds.stim': [4321 + (17*i) for i in range(5)],
-        'saveJson': [True],
+        'saveJson': ['True'],
     }
     # -------------------------------------------------------------------------
     # Run the grid search (25 combinations: 5 x 5)
