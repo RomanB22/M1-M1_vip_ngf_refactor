@@ -3,14 +3,15 @@ from netpyne.batchtools.search import search
 # -------------------------------------------------------------------------
 # Batch parameters – grid search over simConfig.seeds sub-keys
 # -------------------------------------------------------------------------
+
 params = {
-    'seeds.conn': [1, 2, 3],
-    'seeds.stim': [1, 2, 3],
-    'seeds.loc':  [1, 2, 3],
+    'seeds.conn': [4321+(17*i) for i in range(5)],
+    'seeds.stim': [4321+(17*i) for i in range(5)],
+    'saveJson': ['True'],
 }
 
 # -------------------------------------------------------------------------
-# Run the grid search (27 combinations: 3 x 3 x 3)
+# Run the grid search (25 combinations: 5 x 5)
 # -------------------------------------------------------------------------
 search(
     job_type='suny',      # change to 'hpc_slurm' / 'sge' for cluster
