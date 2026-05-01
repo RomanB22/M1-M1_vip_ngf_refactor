@@ -152,7 +152,7 @@ cfg.recordDipole = True
 # Analysis
 cfg.analysis['plotLFP'] = {
     'plots': ['timeSeries', 'PSD', 'spectrogram', 'locations'],   # add 'PSD', 'spectrogram', 'locations' if needed
-    'electrodes': cfg.recordLFP[::2],        # with the range above, 10 is the deepest electrode
+    'electrodes': list(range(len(cfg.recordLFP)))[::2],        # with the range above, 10 is the deepest electrode
     'timeRange': cfg.timeRanges, 'minFreq': 1, 'maxFreq': 80, 'figSize': (8, 4), 'saveData': False, 'saveFig': True, 'showFig': False}
 
 cfg.analysis['plotDipole'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
