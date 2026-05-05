@@ -141,24 +141,34 @@ cfg.analysis['plotTraces'] = {'include': cfg.recordCells, 'timeRange': cfg.timeR
 # 								'overlay': True, 'oneFigPer': 'cell', 'figSize': (10,4), 
 # 								'saveFig': True, 'subtitles': True, 'legend': True} 
 
+def getColors(cfg, n):
+    base = getattr(cfg, 'plotColors', None)
+    if base is None or len(base) == 0:
+        import matplotlib.pyplot as plt
+        base = list(plt.cm.tab10.colors)
+    return (base * (n // len(base) + 1))[:n]
+
 # Recording
 # old sim/ version already used this same LFP layout
 # center of the 300 x 1350 x 300 um column
 cfg.recordLFP = [[150, y, 150] for y in range(200, 1300, 200)]
+
+colorsLFP = getColors(cfg, len(cfg.recordLFP))
 
 # EEG in NetPyNE comes from dipole recording, not from recordLFP
 cfg.recordDipole = True
 
 # Analysis
 cfg.analysis['plotLFP'] = {
-    'plots': ['timeSeries', 'PSD', 'spectrogram', 'locations'],   # add 'PSD', 'spectrogram', 'locations' if needed
-    'electrodes': list(range(len(cfg.recordLFP)))[::2],        # with the range above, 10 is the deepest electrode
+    'plots': ['timeSeries', 'PSD', 'spectrogram'],   # add 'PSD', 'spectrogram', 'locations' if needed
+    'electrodes': list(range(len(cfg.recordLFP)))[::2], 'colorList': colorsLFP,        # with the range above, 10 is the deepest electrode
     'timeRange': cfg.timeRanges, 'minFreq': 1, 'maxFreq': 80, 'figSize': (8, 4), 'saveData': False, 'saveFig': True, 'showFig': False}
 
 cfg.analysis['plotDipole'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
 cfg.analysis['plotCSD'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
 
 cfg.analysis['plotEEG'] = {'timeRange': cfg.timeRanges, 'saveFig': True, 'showFig': False}
+
 
 #------------------------------------------------------------------------------
 # Cells
