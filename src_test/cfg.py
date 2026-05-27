@@ -300,8 +300,6 @@ if cfg.blockNa:
 # Uses existing outward K / slow K / Ca-dependent K mechanisms already present
 # in the current cell templates.
 if cfg.KCNT1:
-    cfg.variant = "KCNT1_G269S"
-
     cfg.mutations += [
         # ------------------------------------------------------------
         # L5 pyramidal / PT5B_full
@@ -315,6 +313,27 @@ if cfg.KCNT1:
             "value": 2.0,
             "sections": "ALL",
             "only_if_present": {"mech": "kBK"},
+        },
+        # PT5B input resistance change from G269S preliminary data
+        # Rin mutant / Rin WT = 91 / 169 ≈ 0.54
+        # Since Rin ~ 1 / g_pas, scale g_pas by 169 / 91 ≈ 1.86
+        {
+            "label": "PT5B_full",
+            "mech": "pas",
+            "param": "g",
+            "op": "scale",
+            "value": 1.86,
+            "sections": "ALL",
+            "only_if_present": {"mech": "pas"},
+        },
+        {
+            "label": "PT5B_full",
+            "mech": "hd",
+            "param": "gbar",
+            "op": "scale",
+            "value": 0.15,
+            "sections": "ALL",
+            "only_if_present": {"mech": "hd"},
         },
 
         # ------------------------------------------------------------
