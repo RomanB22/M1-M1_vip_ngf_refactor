@@ -296,6 +296,68 @@ if cfg.blockNa:
         },
     ]
 
+# KCNT1 G269S gain-of-function approximation
+# Uses existing outward K / slow K / Ca-dependent K mechanisms already present
+# in the current cell templates.
+if cfg.KCNT1:
+    cfg.variant = "KCNT1_G269S"
+
+    cfg.mutations += [
+        # ------------------------------------------------------------
+        # L5 pyramidal / PT5B_full
+        # PTcell.py has kBK in soma/apic/dend with parameter gpeak
+        # ------------------------------------------------------------
+        {
+            "label": "PT5B_full",
+            "mech": "kBK",
+            "param": "gpeak",
+            "op": "scale",
+            "value": 2.0,
+            "sections": "ALL",
+            "only_if_present": {"mech": "kBK"},
+        },
+
+        # ------------------------------------------------------------
+        # PV interneurons
+        # FS3.hoc uses IKsin, parameter gKsbar
+        # ------------------------------------------------------------
+        {
+            "label": "PV_reduced",
+            "mech": "IKsin",
+            "param": "gKsbar",
+            "op": "scale",
+            "value": 3.0,
+            "sections": "ALL",
+            "only_if_present": {"mech": "IKsin"},
+        },
+
+        # ------------------------------------------------------------
+        # SOM / SST interneurons
+        # LTS3.hoc uses kapcb, parameter gkabar
+        # ------------------------------------------------------------
+        {
+            "label": "SOM_reduced",
+            "mech": "kapcb",
+            "param": "gkabar",
+            "op": "scale",
+            "value": 2.5,
+            "sections": "ALL",
+            "only_if_present": {"mech": "kapcb"},
+        },
+
+        # Optional SOM calcium-channel adjustment:
+        # leave OFF at first unless you want to tune reduced AHP/Ca coupling.
+        # {
+        #     "label": "SOM_reduced",
+        #     "mech": "catcb",
+        #     "param": "gcatbar",
+        #     "op": "scale",
+        #     "value": 1.0,
+        #     "sections": "ALL",
+        #     "only_if_present": {"mech": "catcb"},
+        # },
+    ]
+
 cfg.drugTreatment = False
 cfg.verbose_drug_changes = False
 cfg.drug_dry_run = False  # If True, will only print planned changes without applying them
