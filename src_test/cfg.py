@@ -354,15 +354,15 @@ if cfg.KCNT1:
         # SOM / SST interneurons
         # LTS3.hoc uses kapcb, parameter gkabar
         # ------------------------------------------------------------
-        {
-            "label": "SOM_reduced",
-            "mech": "kapcb",
-            "param": "gkabar",
-            "op": "scale",
-            "value": 2.5,
-            "sections": "ALL",
-            "only_if_present": {"mech": "kapcb"},
-        },
+        # {
+        #     "label": "SOM_reduced",
+        #     "mech": "kapcb",
+        #     "param": "gkabar",
+        #     "op": "scale",
+        #     "value": 2.5,
+        #     "sections": "ALL",
+        #     "only_if_present": {"mech": "kapcb"},
+        # },
 
         # Optional SOM calcium-channel adjustment:
         # leave OFF at first unless you want to tune reduced AHP/Ca coupling.
