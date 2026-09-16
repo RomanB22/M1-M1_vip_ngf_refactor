@@ -1,0 +1,4 @@
+# Extra packages missing from the current NewBatchtk environment.
+# Install with: conda run -n NewBatchtk python -m pip install -r src_Manifolds/requirements-optimization.txt
+optunahub==0.5.0
+h5py>=3.16,<4

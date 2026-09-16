@@ -8,7 +8,7 @@ SRC_TEST = PROJECT_ROOT / "src_test"
 if str(SRC_TEST) not in sys.path:
     sys.path.insert(0, str(SRC_TEST))
 
-import spike_guard
+from simulation import spike_guard
 
 
 def _build_spike(amplitude: float = 30.0) -> list[float]:
@@ -150,9 +150,9 @@ def test_blocked_pop_summary_and_penalty():
 
 def test_batch_param_space_is_unchanged():
     sys.path.insert(0, str(SRC_TEST))
-    from batch_params import get_batch_params
+    from optimization.search_space import build_search_space
 
-    params = get_batch_params(0.5, 1.5)
+    params = build_search_space(0.5, 1.5)
     assert len(params) == 18
     assert sorted(params.keys()) == sorted(
         [

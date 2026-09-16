@@ -22,7 +22,7 @@ wscale_PT5B_Tim/ray/
 *.pyc
 ExpanseKey.txt
 netpyne/
-src_MANIFOLDS/
+# src_MANIFOLDS/
 *.png
 
 src_testOLD/
@@ -33,3 +33,5 @@ sim
 testCellLoading
 optunaBest
 sa_nyhead.mat
+M1-M1_vip_ngf_refactor-Codex_test/
+tests/
