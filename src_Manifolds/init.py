@@ -16,6 +16,7 @@ from calibration.objective_pipeline import (
     validate_objective_setup,
 )
 from netParams import cfg, netParams
+from simulation.analysis_config import skip_unavailable_plots
 from simulation.spike_guard import (
     blockade_penalty,
     guard_summary_for_results,
@@ -62,6 +63,8 @@ def main() -> None:
         sim.send(json.dumps(payload))
 
     if cfg.plotSimResults:
+        if sim.rank == 0:
+            skip_unavailable_plots(sim, cfg)
         sim.saveData()
         sim.analysis.plotData()
 

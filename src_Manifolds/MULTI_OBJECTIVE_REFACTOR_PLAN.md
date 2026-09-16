@@ -532,7 +532,7 @@ Small metadata and checksums should be version controlled. Large experimental ar
 
 ## 17. Implementation validation
 
-- `NewBatchtk`: 36 unit/regression/structure tests passed. Structure tests
+- `NewBatchtk`: 38 unit/regression/structure tests passed. Structure tests
   enforce a declarative `cfg.py`, a short explicit `init.py`, and only the
   three standard Python entry files at the source root.
 - OptunaHub MO-CMA: an in-memory two-objective, eight-trial study completed

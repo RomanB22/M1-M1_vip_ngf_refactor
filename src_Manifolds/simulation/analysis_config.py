@@ -46,6 +46,36 @@ def _recorded_cells(mode: int) -> list[Any]:
     raise ValueError(f"Unknown cfg.cellsrec mode: {mode}")
 
 
+def _raster_has_selected_spikes(sim: Any, settings: dict[str, Any]) -> bool:
+    """Return whether the configured populations spike in the plotted window."""
+
+    included = set(settings.get("include", []))
+    population_by_gid = {
+        int(cell["gid"]): str(cell.get("tags", {}).get("pop", ""))
+        for cell in getattr(sim.net, "allCells", [])
+        if isinstance(cell, dict) and "gid" in cell
+    }
+    selected_gids = {
+        gid for gid, population in population_by_gid.items() if population in included
+    }
+    start, stop = settings.get("timeRange", [float("-inf"), float("inf")])
+    spike_ids = sim.allSimData.get("spkid", [])
+    spike_times = sim.allSimData.get("spkt", [])
+    return any(
+        int(gid) in selected_gids and float(start) <= float(time) <= float(stop)
+        for gid, time in zip(spike_ids, spike_times)
+    )
+
+
+def skip_unavailable_plots(sim: Any, cfg: Any) -> None:
+    """Remove plots that NetPyNE cannot render for the gathered data."""
+
+    raster = cfg.analysis.get("plotRaster")
+    if raster and not _raster_has_selected_spikes(sim, raster):
+        cfg.analysis.pop("plotRaster")
+        print("Skipping plotRaster: selected cortical populations produced no spikes.")
+
+
 def configure_recording_and_analysis(cfg: Any, project_root: Path) -> None:
     """Apply derived recording settings after BatchTK mappings are known."""
 
@@ -97,7 +127,7 @@ def configure_recording_and_analysis(cfg: Any, project_root: Path) -> None:
     cfg.analysis["plotLFP"] = {
         "plots": ["timeSeries", "PSD", "spectrogram"],
         "electrodes": list(range(len(cfg.recordLFP)))[::2],
-        "colorList": DEFAULT_LFP_COLORS,
+        "colors": DEFAULT_LFP_COLORS,
         "timeRange": cfg.timeRanges,
         "minFreq": 1,
         "maxFreq": 80,
@@ -123,4 +153,8 @@ def configure_recording_and_analysis(cfg: Any, project_root: Path) -> None:
     }
 
 
-__all__ = ["ALL_CORTICAL_POPS", "configure_recording_and_analysis"]
+__all__ = [
+    "ALL_CORTICAL_POPS",
+    "configure_recording_and_analysis",
+    "skip_unavailable_plots",
+]

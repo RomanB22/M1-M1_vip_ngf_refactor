@@ -169,6 +169,8 @@ Standalone simulations save NetPyNE plots by default under
 are the spike raster, recorded voltage traces, LFP, dipole, CSD, and EEG.
 The simulation data and configuration are also saved as JSON by default through
 `cfg.saveJson = True`.
+If none of the selected cortical populations spikes in the requested window,
+the raster is skipped with a message; the remaining plots are still generated.
 Set `cfg.plotSimResults = False` to disable them, or `cfg.showPlots = True` when
 running with a graphical Matplotlib backend to display them interactively. The
 entry point defaults to the headless `Agg` backend unless `MPLBACKEND` is set.
