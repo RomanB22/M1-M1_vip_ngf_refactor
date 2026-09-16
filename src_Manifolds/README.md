@@ -159,6 +159,8 @@ conda run -n NewBatchtk python -m pytest -q tests
 Standalone simulations save NetPyNE plots by default under
 `cfg.saveFolder` (`batchData/v103_manualTune` by default). The configured plots
 are the spike raster, recorded voltage traces, LFP, dipole, CSD, and EEG.
+The simulation data and configuration are also saved as JSON by default through
+`cfg.saveJson = True`.
 Set `cfg.plotSimResults = False` to disable them, or `cfg.showPlots = True` when
 running with a graphical Matplotlib backend to display them interactively. The
 entry point defaults to the headless `Agg` backend unless `MPLBACKEND` is set.
