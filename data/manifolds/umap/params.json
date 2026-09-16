@@ -1,0 +1,1 @@
+{"baseline": 1, "minRateBaseline": 0.25, "minRateTrial": 0.5, "bin_time": 0.05, "fs": 500, "window_size": 25, "n_neighbors": 50, "min_dist": 0.25, "metric": "euclidean", "randomNumber": 42}

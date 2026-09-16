@@ -532,7 +532,7 @@ Small metadata and checksums should be version controlled. Large experimental ar
 
 ## 17. Implementation validation
 
-- `NewBatchtk`: 31 unit/regression/structure tests passed. Structure tests
+- `NewBatchtk`: 36 unit/regression/structure tests passed. Structure tests
   enforce a declarative `cfg.py`, a short explicit `init.py`, and only the
   three standard Python entry files at the source root.
 - OptunaHub MO-CMA: an in-memory two-objective, eight-trial study completed
@@ -546,6 +546,9 @@ Small metadata and checksums should be version controlled. Large experimental ar
 - Reference preparation: the real configured CEBRA command produced compact
   `(124, 91)` activity and a stored `(124, 3)` embedding with provenance
   metadata. Runtime supports loading this embedding instead of recomputing it.
+- Manifold storage: CEBRA and UMAP inputs were copied into
+  `data/manifolds/`; active configuration no longer reads artifacts from the
+  ignored prototype tree.
 - CEBRA smoke: a connected 245-cell model (seven cells per population) produced
   matched `(124, 91)` activity matrices, `(124, 3)` embeddings, finite
   `manifold_loss=1.3350294219994112`, and `trial_valid=true`. The same full

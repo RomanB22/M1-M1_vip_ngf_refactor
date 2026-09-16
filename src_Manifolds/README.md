@@ -100,16 +100,24 @@ reducer and calls the same `transform` interface. In either case, the default
 `paired_rms` comparator measures separation between event-aligned time points;
 the learner and comparison rule are independent and can be changed separately.
 
-The current CEBRA default points to the existing session/trial/model artifacts
-under `M1-M1_vip_ngf_refactor-Codex_test`. Replace the reference dictionary with
-a curated NPZ and artifact path when those data are moved.
+The manifold artifacts are self-contained under `data/manifolds/`. The active
+CEBRA configuration reads its activity, session metadata, trial index, and
+fitted model from `data/manifolds/cebra/`; it no longer depends on the old
+prototype tree. The copied UMAP parameters and experimental result datasets
+live under `data/manifolds/umap/`.
+
+The legacy UMAP result pickles contain activity matrices and embeddings, but
+not a reusable fitted reducer exposing `transform()`. Consequently, switching
+`MANIFOLD_CONFIG["method"]` to `"umap"` also requires preparing
+`data/manifolds/umap/umap_reducer.joblib`. Its intended path and the source-data
+paths are isolated in `MANIFOLD_CONFIG["methods"]["umap"]`.
 
 Prepare and validate that compact NPZ outside an optimization run with:
 
 ```bash
 PYTHONPATH="$PWD/src_Manifolds" \
 conda run -n NewBatchtk python -m calibration.reference_preparation \
-  --output-dir data/calibration/manifolds
+  --output-dir data/manifolds/prepared
 ```
 
 The command loads the configured trial, validates the explicit feature and

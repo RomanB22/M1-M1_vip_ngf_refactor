@@ -18,7 +18,9 @@ from typing import Any
 MODULE_DIR = Path(__file__).resolve().parent
 SOURCE_DIR = MODULE_DIR.parent
 PROJECT_ROOT = SOURCE_DIR.parent
-LEGACY_DATA_ROOT = PROJECT_ROOT / "M1-M1_vip_ngf_refactor-Codex_test"
+MANIFOLD_DATA_ROOT = PROJECT_ROOT / "data" / "manifolds"
+CEBRA_DATA_ROOT = MANIFOLD_DATA_ROOT / "cebra"
+UMAP_DATA_ROOT = MANIFOLD_DATA_ROOT / "umap"
 
 # These values are scientific inputs, not incidental simulator settings.  Keep
 # them here so preprocessing, preflight validation, and run manifests use the
@@ -134,9 +136,8 @@ CSD_CONFIG = {
 }
 
 
-# All scientific inputs to the manifold API live in this dictionary.  The
-# legacy paths make the current workspace usable; changing to a curated NPZ
-# requires configuration changes only.
+# All scientific inputs to the manifold API live in this dictionary. Runtime
+# paths are project-local under data/manifolds, independent of prototype trees.
 MANIFOLD_CONFIG = {
     "method": "cebra",
     "comparator": "paired_rms",
@@ -145,23 +146,17 @@ MANIFOLD_CONFIG = {
     "bin_ms": 20.0,
     "reference": {
         "format": "legacy_pickle",  # alternative: "npz"
-        "activity_path": str(LEGACY_DATA_ROOT / "src_CEBRA" / "CEBRA_data" / "all_data.pkl"),
+        "activity_path": str(CEBRA_DATA_ROOT / "all_data.pkl"),
         "activity_key": "activity",
         "times_key": "times_ms",
         "depths_key": "cell_depths_um",
         "session": "230517_2759_1606VAL",
         "trial": 20,
         "trial_index_path": str(
-            LEGACY_DATA_ROOT
-            / "src_CEBRA"
-            / "CEBRA_params"
-            / "230517_2759_1606VAL_trial_idx.txt"
+            CEBRA_DATA_ROOT / "params" / "230517_2759_1606VAL_trial_idx.txt"
         ),
         "metadata_path": str(
-            LEGACY_DATA_ROOT
-            / "src_CEBRA"
-            / "CEBRA_params"
-            / "230517_2759_1606VAL_CEBRAparams.txt"
+            CEBRA_DATA_ROOT / "params" / "230517_2759_1606VAL_CEBRAparams.txt"
         ),
         "reference_start_ms": -1500.0,
         "already_smoothed": True,
@@ -191,18 +186,22 @@ MANIFOLD_CONFIG = {
     },
     "methods": {
         "cebra": {
-            "model_path": str(
-                LEGACY_DATA_ROOT
-                / "src_CEBRA"
-                / "CEBRA_data"
-                / "230517_2759_1606VAL"
-                / "decode_rs_iter100000_ndim3_conddelta"
-                / "models"
-                / "model_stg-joy.pt"
-            )
+            "model_path": str(CEBRA_DATA_ROOT / "models" / "model_stg-joy.pt")
         },
         "umap": {
-            "model_path": str(PROJECT_ROOT / "data" / "calibration" / "manifolds" / "umap_reducer.joblib")
+            # The copied result files contain experimental activity and
+            # embeddings, but not a fitted reducer with transform(). Keep
+            # their paths explicit for offline reducer preparation.
+            "model_path": str(UMAP_DATA_ROOT / "umap_reducer.joblib"),
+            "source_data": {
+                "parameters_path": str(UMAP_DATA_ROOT / "params.json"),
+                "scaled_prep_results_path": str(
+                    UMAP_DATA_ROOT / "scaled_prep" / "umap_results_n2_m1.pkl"
+                ),
+                "scaled_tone_results_path": str(
+                    UMAP_DATA_ROOT / "scaled_tone" / "umap_results_n2_m1.pkl"
+                ),
+            },
         },
     },
     "shape_policy": {

@@ -161,7 +161,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output-dir",
-        default="data/calibration/manifolds",
+        default="data/manifolds/prepared",
         help="Directory for experimental_activity.npz and derived metadata",
     )
     parser.add_argument("--method", choices=sorted(METHOD_LOADERS), default=None)
