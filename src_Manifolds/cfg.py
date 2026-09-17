@@ -120,7 +120,7 @@ cfg.cellModelLoadModeByLabel = {
     "PV_reduced": "saved",
     "VIP_reduced": "saved",
     "NGF_reduced": "saved",
-    "PT5B_full": "source",
+    "PT5B_full": "saved",
 }
 cfg.dendNa = 1.0
 cfg.cellmod = {
